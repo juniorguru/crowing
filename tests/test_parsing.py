@@ -1,8 +1,13 @@
 import pytest
 
 from jg.crowing.errors import InvalidInputError
+from jg.crowing.models import Run
 from jg.crowing.parsing import parse_section
 from tests.conftest import load_fixture
+
+
+def text_of(runs: list[Run]) -> str:
+    return "".join(run.text for run in runs)
 
 
 @pytest.fixture
@@ -25,22 +30,33 @@ def test_heading_strips_headerlink(edge_html):
 
 def test_collects_only_plain_paragraphs(edge_html):
     paragraphs = parse_section(edge_html, "target").paragraphs
-    assert paragraphs == [
-        "Plain paragraph one with a link and bold.",
+    assert [text_of(p) for p in paragraphs] == [
+        "Plain paragraph one with a link, bold and italics.",
         "Plain paragraph two spread over several lines.",
         "Subsection paragraph still belongs to the target section.",
     ]
 
 
+def test_preserves_bold_and_italic_and_flattens_links(edge_html):
+    first = parse_section(edge_html, "target").paragraphs[0]
+    assert first == [
+        Run("Plain paragraph one with a link, "),
+        Run("bold", bold=True),
+        Run(" and "),
+        Run("italics", italic=True),
+        Run("."),
+    ]
+
+
 def test_does_not_leak_into_next_section(edge_html):
     paragraphs = parse_section(edge_html, "target").paragraphs
-    assert all("next section" not in p for p in paragraphs)
+    assert all("next section" not in text_of(p) for p in paragraphs)
 
 
 def test_intro_heading_collects_its_own_paragraph(edge_html):
     section = parse_section(edge_html, "intro")
     assert section.heading == "Úvod"
-    assert section.paragraphs == ["First intro paragraph."]
+    assert [text_of(p) for p in section.paragraphs] == ["First intro paragraph."]
 
 
 def test_missing_anchor_raises_invalid_input(edge_html):
@@ -53,5 +69,5 @@ def test_real_handbook_page(git_html):
     assert section.title == "Git a GitHub"
     assert section.heading == "Řešení problémů s Gitem"
     assert len(section.paragraphs) == 2
-    assert section.paragraphs[0].startswith("Asi neexistuje člověk")
-    assert section.paragraphs[1].startswith("Pokud se ti to stane")
+    assert text_of(section.paragraphs[0]).startswith("Asi neexistuje člověk")
+    assert text_of(section.paragraphs[1]).startswith("Pokud se ti to stane")
