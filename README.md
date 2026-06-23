@@ -71,6 +71,11 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Because the carousel mirrors the Instagram post, it naturally stays in LinkedIn's sweet spot of a few focused slides (LinkedIn allows up to 300 pages and 100 MB, but short carousels perform best); the bottom-right arrow on the intro doubles as a "swipe through" cue
 - Branding (colors, fonts, layout) is already consistent across pages because they are the very same images
 
+### Reel
+
+- Creates similar images, but 9:16 (1080x1920px), and glues them to a short slide show video
+- The length of the video will always be 30 seconds, and the transitions are computed so that people can look at each slide for equal amount of time
+
 ### Typography
 
 - If text is on yellow or white, it's #343434
