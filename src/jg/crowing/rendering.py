@@ -22,6 +22,9 @@ DARK = "#343434"
 WHITE = "#ffffff"
 BLUE = "#1755d1"  # Bootstrap primary blue, as on junior.guru thumbnails
 
+CTA_MESSAGE = "V\u00edce o tomto t\u00e9matu najde\u0161 v p\u0159\u00edru\u010dce"
+CTA_MESSAGE_SIZE = 64
+CTA_MESSAGE_WEIGHT = 600
 CTA_TEXT = "junior.guru/handbook"
 CTA_ICON = "\uf447"  # Bootstrap Icons "journals" (U+F447)
 CTA_TEXT_SIZE = 46
@@ -29,6 +32,7 @@ CTA_ICON_SIZE = 50
 CTA_ICON_GAP = 18
 CTA_PADDING_X = 42
 CTA_PADDING_Y = 26
+CTA_GAP = 56  # space between the message and the button
 BUTTON_RADIUS_RATIO = 0.1  # only slightly rounded corners, not a pill
 
 # Inter and Liberation Mono are bundled under the SIL Open Font License 1.1
@@ -369,33 +373,65 @@ def render_paragraph(runs: RichText) -> Image.Image:
 # --- call to action ---------------------------------------------------------
 
 
+def fit_plain(
+    draw: Draw,
+    text: str,
+    max_width: int,
+    max_height: float,
+    max_size: int,
+    weight: int = 400,
+    min_size: int = 12,
+) -> tuple[Font, list[str]]:
+    """Pick the largest plain-text size at which the wrapped lines fit the box."""
+    font = load_font(min_size, weight)
+    lines = wrap_text(draw, text, font, max_width)
+    for size in range(max_size, min_size, -2):
+        font = load_font(size, weight)
+        lines = wrap_text(draw, text, font, max_width)
+        if _block_fits(draw, lines, font, max_width):
+            if _line_height(font) * len(lines) <= max_height:
+                break
+    return font, lines
+
+
+def _button_size(draw: Draw, text_font: Font, icon_font: Font) -> tuple[float, float]:
+    icon_width = draw.textlength(CTA_ICON, font=icon_font)
+    text_width = draw.textlength(CTA_TEXT, font=text_font)
+    ascent, descent = text_font.getmetrics()
+    width = icon_width + CTA_ICON_GAP + text_width + 2 * CTA_PADDING_X
+    height = ascent + descent + 2 * CTA_PADDING_Y
+    return width, height
+
+
+def _draw_button(
+    draw: Draw, left: float, top: float, text_font: Font, icon_font: Font
+) -> None:
+    width, height = _button_size(draw, text_font, icon_font)
+    box = (left, top, left + width, top + height)
+    draw.rounded_rectangle(box, radius=round(height * BUTTON_RADIUS_RATIO), fill=BLUE)
+    icon_width = draw.textlength(CTA_ICON, font=icon_font)
+    content_left = left + CTA_PADDING_X
+    middle = top + height / 2
+    draw.text((content_left, middle), CTA_ICON, font=icon_font, fill=WHITE, anchor="lm")
+    text_left = content_left + icon_width + CTA_ICON_GAP
+    draw.text((text_left, middle), CTA_TEXT, font=text_font, fill=WHITE, anchor="lm")
+
+
 def render_cta() -> Image.Image:
-    """The closing call-to-action: a flat blue button with the journals icon."""
+    """The closing call-to-action: a message above a flat blue journals button."""
     image = Image.new("RGB", (SIZE, SIZE), YELLOW)
     draw = ImageDraw.Draw(image)
     text_font = load_font(CTA_TEXT_SIZE, weight=600)
     icon_font = load_icon_font(CTA_ICON_SIZE)
-    icon_width = draw.textlength(CTA_ICON, font=icon_font)
-    text_width = draw.textlength(CTA_TEXT, font=text_font)
-    content_width = icon_width + CTA_ICON_GAP + text_width
-    ascent, descent = text_font.getmetrics()
-    button_width = content_width + 2 * CTA_PADDING_X
-    button_height = ascent + descent + 2 * CTA_PADDING_Y
-    centre = SIZE / 2
-    left = centre - button_width / 2
-    box = (
-        left,
-        centre - button_height / 2,
-        left + button_width,
-        centre + button_height / 2,
+    _, button_height = _button_size(draw, text_font, icon_font)
+    budget = CONTENT - button_height - CTA_GAP
+    message_font, message_lines = fit_plain(
+        draw, CTA_MESSAGE, CONTENT, budget, CTA_MESSAGE_SIZE, weight=CTA_MESSAGE_WEIGHT
     )
-    draw.rounded_rectangle(
-        box, radius=round(button_height * BUTTON_RADIUS_RATIO), fill=BLUE
-    )
-    content_left = centre - content_width / 2
-    draw.text((content_left, centre), CTA_ICON, font=icon_font, fill=WHITE, anchor="lm")
-    text_left = content_left + icon_width + CTA_ICON_GAP
-    draw.text((text_left, centre), CTA_TEXT, font=text_font, fill=WHITE, anchor="lm")
+    message_height = _line_height(message_font) * len(message_lines)
+    top = (SIZE - (message_height + CTA_GAP + button_height)) / 2
+    top = _draw_left(draw, message_lines, message_font, DARK, top)
+    _draw_button(draw, PADDING, top + CTA_GAP, text_font, icon_font)
     return image
 
 

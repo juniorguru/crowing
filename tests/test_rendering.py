@@ -151,6 +151,14 @@ def _button_bbox(image) -> tuple[int, int, int, int]:
     return min(xs), min(ys), max(xs), max(ys)
 
 
+def test_cta_has_dark_message_above_the_button():
+    image = render_cta()
+    pixels = image.load()
+    dark = hex_to_rgb(DARK)
+    _, button_top, _, _ = _button_bbox(image)
+    assert any(pixels[x, y] == dark for x in range(SIZE) for y in range(button_top))
+
+
 def test_cta_button_is_bootstrap_blue_with_white_glyphs():
     image = render_cta()
     pixels = image.load()
