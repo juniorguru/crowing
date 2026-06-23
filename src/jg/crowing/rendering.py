@@ -30,7 +30,8 @@ CTA_PADDING_X = 42
 CTA_PADDING_Y = 26
 BUTTON_RADIUS_RATIO = 0.1  # only slightly rounded corners, not a pill
 
-# Inter is bundled under the SIL Open Font License 1.1 (see assets/Inter-LICENSE).
+# Inter and Liberation Mono are bundled under the SIL Open Font License 1.1
+# (see assets/Inter-LICENSE and assets/LiberationMono-LICENSE).
 # Bootstrap Icons is bundled under the MIT License (see assets/bootstrap-icons-LICENSE).
 _ASSETS = files("jg.crowing") / "assets"
 _FONT_PATHS = {
@@ -38,6 +39,7 @@ _FONT_PATHS = {
     True: str(_ASSETS / "Inter-Italic.ttf"),
 }
 _ICON_PATH = str(_ASSETS / "bootstrap-icons.ttf")
+_MONO_PATH = str(_ASSETS / "LiberationMono.ttf")
 _OPTICAL_SIZE_MAX = 32
 
 Segment = tuple[str, bool, bool]
@@ -62,6 +64,12 @@ def _segment_font(size: int, bold: bool, italic: bool) -> Font:
 def load_icon_font(size: int) -> Font:
     """Load the bundled Bootstrap Icons font at ``size`` pixels."""
     return ImageFont.truetype(_ICON_PATH, size)
+
+
+@lru_cache(maxsize=None)
+def load_mono_font(size: int) -> Font:
+    """Load the bundled Liberation Mono font at ``size`` pixels (for monospace text)."""
+    return ImageFont.truetype(_MONO_PATH, size)
 
 
 def _line_height(size: int) -> float:

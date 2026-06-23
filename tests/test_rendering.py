@@ -9,6 +9,7 @@ from jg.crowing.rendering import (
     YELLOW,
     fit_intro,
     load_font,
+    load_mono_font,
     render_cta,
     render_intro,
     render_paragraph,
@@ -40,6 +41,10 @@ def test_wrap_text_respects_width(draw):
     lines = wrap_text(draw, text, font, max_width=200)
     assert len(lines) > 1
     assert all(draw.textlength(line, font=font) <= 200 for line in lines)
+
+
+def test_load_mono_font_is_liberation_mono():
+    assert load_mono_font(40).getname()[0] == "Liberation Mono"
 
 
 def test_intro_heading_is_larger_than_title(draw):

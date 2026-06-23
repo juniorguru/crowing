@@ -25,7 +25,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
   - has only slightly rounded corners, _not_ a pill: the corner radius is about one tenth of the button's height (Bootstrap's `0.375rem`, i.e. roughly 6px on a 60px-tall button)
   - says "junior.guru/handbook"
   - has the white [Bootstrap "journals" icon](https://icons.getbootstrap.com/icons/journals/) right before the text
-- Font is Inter, the same as in [junior.guru core repository's package.json](https://github.com/juniorguru/junior.guru/blob/main/package.json)
+- We use "Inter" font for text, and for monospace text (if any) we use "Liberation Mono".
 
 ### Errors
 
@@ -75,6 +75,7 @@ The project aims to be as consistent as possible with other [@juniorguru](https:
 ### Packaging, dependencies, tools
 
 - Let `uv` to manage virtual environments and dependencies and use it as the main entrypoint
+- There is a primitive `Makefile` wrapping the commands one runs often (`make install`, `make test`, `make format`, `make build`, `make smoke`, `make demo`, `make verify`, `make clean`); prefer it over typing the underlying `uv` commands by hand. `make verify` runs everything that must pass before a change is done.
 - `pyproject.toml` contains also config for Ruff, including isort rules, which are as consistent as possible with other @juniorguru projects
 - Using `uv_build` as the build backend, with `module-name` set to `jg.crowing`
 - Ruff target version must comply with the `requires-python`
