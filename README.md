@@ -2,7 +2,7 @@
 
 Creates marketing assets from a piece of junior.guru website.
 
-## Usage
+## Usage and behavior
 
 ```
 $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
@@ -21,12 +21,13 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Last image is call to action. It has #fffa72 background and #0f62fe "flat button", i.e. rectangle with round corners, and with white text. It says "junior.guru/handbook"
 - Font is Inter, the same as in [junior.guru core repository's package.json](https://github.com/juniorguru/junior.guru/blob/main/package.json)
 
-## Behavior
+### Errors
 
 - If page is not within junior.guru, it raises not implemented
 - If page is not within /handbook/, it raises not implemented
 - If link doesn't include anchor, it's invalid input error
 - If target anchor doesn't exist, it's invalid input error
+- Uses suitable [click exceptions](https://click.palletsprojects.com/en/stable/api/#exceptions) for the input errors
 
 ## Installation and contributing
 
