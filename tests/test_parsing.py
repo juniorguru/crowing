@@ -64,6 +64,24 @@ def test_missing_anchor_raises_invalid_input(edge_html):
         parse_section(edge_html, "does-not-exist")
 
 
+def test_collects_topics_from_table_of_contents(git_html):
+    assert parse_section(git_html, "reseni-problemu-s-gitem").topics == [
+        "Co je Git",
+        "Jak se učit Git",
+        "Ovládání Gitu",
+        "Řešení problémů s Gitem",
+        "Co je GitHub",
+        "Jak se učit GitHub",
+        "Dávej kód na GitHub",
+        "Čti kód na GitHubu",
+        "GitHub a pohovory",
+    ]
+
+
+def test_topics_are_empty_without_a_table_of_contents(edge_html):
+    assert parse_section(edge_html, "target").topics == []
+
+
 def test_real_handbook_page(git_html):
     section = parse_section(git_html, "reseni-problemu-s-gitem")
     assert section.title == "Git a GitHub"

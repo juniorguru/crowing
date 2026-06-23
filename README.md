@@ -10,6 +10,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 
 - Downloads the handbook page's HTML
 - Finds the page's H1 title
+- Finds the page's table of contents (always .document-toc)
 - Finds the anchor (leads to a heading)
 - Reads all plain paragraphs within the section
 - Skips notes or cards, embedded videos, etc., takes just paragraphs
@@ -27,7 +28,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Contains an [illustration of a chick](./src/jg/crowing/assets/chick-icon.svg) in bottom left corner
 - Contains an [arrow right](https://icons.getbootstrap.com/icons/arrow-right-circle-fill/) in bottom right corner
 - The arrow fill is #1755d1 but the arrow itself is white
-- The arrow and chick are next to each other, with a bit of padding from the image border and each other
+- The arrow and chick have the same size, and are next to each other, with a bit of padding from the image border and each other
 - Padding consistent with all other Instagram post images
 - Beautiful typography and composition, the text, arrow, or illustration must not collide
 
@@ -51,6 +52,8 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
   - has only slightly rounded corners, _not_ a pill: the corner radius is about one tenth of the button's height (Bootstrap's `0.375rem`, i.e. roughly 6px on a 60px-tall button)
   - says "junior.guru/handbook"
   - has the white [Bootstrap "journals" icon](https://icons.getbootstrap.com/icons/journals/) right before the text
+- Under the button, there is a cloud of topics taken from the page's ToC, each topic separated by whitespace, each topic displayed without wrapping
+- Topics text feels like watermark, with text color #e5df67
 - Padding consistent with all other Instagram post images
 
 ### Typography
@@ -66,7 +69,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - If page is not within junior.guru, it raises not implemented
 - If page is not within /handbook/, it raises not implemented
 - If link doesn't include anchor, it's invalid input error
-- If target anchor doesn't exist, it's invalid input error
+- If target page doesn't contain H1, ToC, or the anchor, it's invalid input error
 - Uses suitable [click exceptions](https://click.palletsprojects.com/en/stable/api/#exceptions) for the input errors
 
 ## Installation and contributing
@@ -114,5 +117,6 @@ The project aims to be as consistent as possible with other [@juniorguru](https:
 - Using `uv_build` as the build backend, with `module-name` set to `jg.crowing`
 - Ruff target version must comply with the `requires-python`
 - When running `pytest`, ruff check runs automatically as well through `pytest-ruff` and cyclomatic complexity is also checked
+- walrus operators are great and pyupgrade is one of the tools we regularly run to keep the code nice and modern
 - The `FUNDING.yml` and `dependabot.yml` files inside `.github` are as consistent as possible with other @juniorguru projects
 - There is a GitHub Actions workflow which runs all the tests and checks, including a smoke test which installs the tool and tries if running it with `--help` works or crashes

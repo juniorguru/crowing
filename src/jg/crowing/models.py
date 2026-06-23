@@ -1,6 +1,6 @@
 """Plain data structures shared across the functional core."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -22,3 +22,4 @@ class Section:
     title: str
     heading: str
     paragraphs: list[RichText]
+    topics: list[str] = field(default_factory=list)

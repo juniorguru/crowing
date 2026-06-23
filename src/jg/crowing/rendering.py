@@ -33,6 +33,10 @@ CTA_ICON_GAP = 18
 CTA_PADDING_X = 42
 CTA_PADDING_Y = 26
 CTA_GAP = 56  # space between the message and the button
+CTA_TOPICS_GAP = 48  # space between the button and the topics cloud
+CTA_TOPICS_SIZE = 36
+CTA_TOPICS_COLOR = "#e5df67"  # pale watermark on the yellow background
+CTA_MESSAGE_BUDGET = round(CONTENT * 0.42)
 BUTTON_RADIUS_RATIO = 0.1  # only slightly rounded corners, not a pill
 
 # Inter and Liberation Mono are bundled under the SIL Open Font License 1.1
@@ -50,7 +54,6 @@ _CHICK_PATH = str(_ASSETS / "chick.png")
 _OPTICAL_SIZE_MAX = 32
 CHICK_WIDTH = round(SIZE * 0.32)
 ARROW_GLYPH = "\uf133"  # Bootstrap Icons "arrow-right-circle-fill" (U+F133)
-ARROW_SIZE = round(SIZE * 0.13)
 ARROW_INSET_RATIO = 0.08  # shrink the white disc so the blue ring hides its edge
 
 Segment = tuple[str, bool, bool]
@@ -213,7 +216,7 @@ class IntroLayout(NamedTuple):
 def intro_layout(draw: Draw, title: str, heading: str) -> IntroLayout:
     """Lay out the intro text above a bottom-left chick and bottom-right arrow."""
     chick = load_chick(CHICK_WIDTH)
-    arrow = load_arrow(ARROW_SIZE)
+    arrow = load_arrow(chick.height)  # same size as the chick
     bottom = SIZE - PADDING
     chick_box = (PADDING, bottom - chick.height, PADDING + chick.width, bottom)
     arrow_box = (
@@ -376,10 +379,11 @@ def fit_words(
     return size, lines
 
 
-def _draw_words(draw: Draw, lines: list[list[Word]], size: int, fill: str) -> None:
+def _draw_words(
+    draw: Draw, lines: list[list[Word]], size: int, fill: str, top: float
+) -> None:
     space = draw.textlength(" ", font=load_font(size))
     step = _line_height(load_font(size))
-    top = (SIZE - step * len(lines)) / 2
     for index, line in enumerate(lines):
         x = float(PADDING)
         for word in line:
@@ -395,7 +399,8 @@ def render_paragraph(runs: RichText) -> Image.Image:
     image = Image.new("RGB", (SIZE, SIZE), WHITE)
     draw = ImageDraw.Draw(image)
     size, lines = fit_words(draw, glue_words(to_words(runs)), CONTENT, CONTENT)
-    _draw_words(draw, lines, size, DARK)
+    top = (SIZE - _line_height(load_font(size)) * len(lines)) / 2
+    _draw_words(draw, lines, size, DARK, top)
     return image
 
 
@@ -446,21 +451,42 @@ def _draw_button(
     draw.text((text_left, middle), CTA_TEXT, font=text_font, fill=WHITE, anchor="lm")
 
 
-def render_cta() -> Image.Image:
-    """The closing call-to-action: a message above a flat blue journals button."""
+def render_cta(topics: list[str] | None = None) -> Image.Image:
+    """Call-to-action: a message, a flat blue journals button, then a topics cloud."""
+    topics = topics or []
     image = Image.new("RGB", (SIZE, SIZE), YELLOW)
     draw = ImageDraw.Draw(image)
     text_font = load_font(CTA_TEXT_SIZE, weight=600)
     icon_font = load_icon_font(CTA_ICON_SIZE)
     _, button_height = _button_size(draw, text_font, icon_font)
-    budget = CONTENT - button_height - CTA_GAP
     message_font, message_lines = fit_plain(
-        draw, CTA_MESSAGE, CONTENT, budget, CTA_MESSAGE_SIZE, weight=CTA_MESSAGE_WEIGHT
+        draw,
+        CTA_MESSAGE,
+        CONTENT,
+        CTA_MESSAGE_BUDGET,
+        CTA_MESSAGE_SIZE,
+        weight=CTA_MESSAGE_WEIGHT,
     )
     message_height = _line_height(message_font) * len(message_lines)
-    top = (SIZE - (message_height + CTA_GAP + button_height)) / 2
+    cloud_budget = CONTENT - message_height - CTA_GAP - button_height - CTA_TOPICS_GAP
+    topic_words = [[(topic, False, False)] for topic in topics]
+    cloud_size, cloud_lines = fit_words(
+        draw, topic_words, CONTENT, max(cloud_budget, 0), max_size=CTA_TOPICS_SIZE
+    )
+    cloud_height = _line_height(load_font(cloud_size)) * len(cloud_lines)
+    topics_gap = CTA_TOPICS_GAP if cloud_lines else 0
+    total = message_height + CTA_GAP + button_height + topics_gap + cloud_height
+    top = (SIZE - total) / 2
     top = _draw_left(draw, message_lines, message_font, DARK, top)
-    _draw_button(draw, PADDING, top + CTA_GAP, text_font, icon_font)
+    button_top = top + CTA_GAP
+    _draw_button(draw, PADDING, button_top, text_font, icon_font)
+    _draw_words(
+        draw,
+        cloud_lines,
+        cloud_size,
+        CTA_TOPICS_COLOR,
+        button_top + button_height + topics_gap,
+    )
     return image
 
 
@@ -469,5 +495,5 @@ def render_section(section: Section) -> list[Image.Image]:
     return [
         render_intro(section.title, section.heading),
         *(render_paragraph(paragraph) for paragraph in section.paragraphs),
-        render_cta(),
+        render_cta(section.topics),
     ]

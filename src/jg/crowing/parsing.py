@@ -27,7 +27,15 @@ def parse_section(html: str, anchor: str) -> Section:
         title=_plain_text(soup.find("h1")),
         heading=_plain_text(heading),
         paragraphs=list(_iter_paragraphs(heading)),
+        topics=_topics(soup),
     )
+
+
+def _topics(soup: BeautifulSoup) -> list[str]:
+    toc = soup.select_one(".document-toc")
+    if toc is None:
+        return []
+    return [_plain_text(link) for link in toc.select("a")]
 
 
 def _iter_paragraphs(heading: Tag):

@@ -98,6 +98,13 @@ def test_intro_has_arrow_in_bottom_right(draw):
     )
 
 
+def test_intro_arrow_and_chick_are_the_same_size(draw):
+    layout = intro_layout(draw, "Git a GitHub", "Řešení problémů s Gitem")
+    chick_height = layout.chick_box[3] - layout.chick_box[1]
+    arrow_height = layout.arrow_box[3] - layout.arrow_box[1]
+    assert abs(chick_height - arrow_height) <= 2
+
+
 def test_intro_arrow_is_blue_circle_with_white_arrow():
     image = render_intro("Git a GitHub", "Řešení problémů s Gitem")
     pixels = image.load()
@@ -182,6 +189,19 @@ def test_cta_has_dark_message_above_the_button():
     dark = hex_to_rgb(DARK)
     _, button_top, _, _ = _button_bbox(image)
     assert any(pixels[x, y] == dark for x in range(SIZE) for y in range(button_top))
+
+
+def test_cta_topics_cloud_is_a_watermark_below_the_button():
+    topics = ["Co je Git", "Ovládání Gitu", "Co je GitHub", "GitHub a pohovory"]
+    image = render_cta(topics)
+    pixels = image.load()
+    watermark = hex_to_rgb("#e5df67")
+    _, _, _, button_bottom = _button_bbox(image)
+    assert any(
+        pixels[x, y] == watermark
+        for x in range(SIZE)
+        for y in range(button_bottom, SIZE)
+    )
 
 
 def test_cta_button_is_bootstrap_blue_with_white_glyphs():
