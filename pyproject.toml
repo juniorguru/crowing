@@ -1,0 +1,52 @@
+[project]
+name = "crowing"
+version = "0.0.0"
+description = "Creates marketing assets from a piece of junior.guru website."
+readme = "README.md"
+requires-python = ">=3.13"
+license = "AGPL-3.0-only"
+authors = [{ name = "Honza Javorek", email = "mail@honzajavorek.cz" }]
+dependencies = [
+  "beautifulsoup4>=4.13",
+  "click>=8.1",
+  "httpx>=0.28",
+  "pillow>=11.0",
+]
+
+[project.scripts]
+crowing = "jg.crowing.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.25",
+  "pytest-ruff>=0.5",
+  "ruff>=0.13",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.11,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "jg.crowing"
+
+[tool.pytest.ini_options]
+python_files = "test_*.py"
+testpaths = "tests"
+addopts = "--ff --ruff --ruff-format"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+extend-select = ["I", "C90"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 6
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+lines-after-imports = 2

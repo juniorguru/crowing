@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="cs">
+  <body>
+    <main class="content document">
+      <h1>Page Title<a class="headerlink" href="#page-title" title="Odkaz">#</a></h1>
+
+      <h2 id="intro">Úvod<a class="headerlink" href="#intro">#</a></h2>
+      <p>First intro paragraph.</p>
+
+      <h2 id="target">Cílová sekce<a class="headerlink" href="#target">#</a></h2>
+      <p>Plain paragraph one with a <a href="/x">link</a> and <strong>bold</strong>.</p>
+      <p>
+        Plain paragraph two
+        spread over several lines.
+      </p>
+      <div class="admonition note">
+        <p class="admonition-title">Poznámka</p>
+        <p>This note paragraph must be skipped.</p>
+      </div>
+      <div class="link-cards">
+        <p>Card paragraph must be skipped.</p>
+      </div>
+      <div class="video-container">
+        <iframe src="https://youtube.com/embed/x"></iframe>
+      </div>
+      <p></p>
+      <p>   </p>
+      <h3 id="target-sub">Podsekce<a class="headerlink" href="#target-sub">#</a></h3>
+      <p>Subsection paragraph still belongs to the target section.</p>
+
+      <h2 id="next">Další sekce<a class="headerlink" href="#next">#</a></h2>
+      <p>Paragraph from the next section must not leak in.</p>
+    </main>
+  </body>
+</html>
