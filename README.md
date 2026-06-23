@@ -12,8 +12,9 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Finds the page's H1 title
 - Finds the page's table of contents (always .document-toc)
 - Finds the anchor (leads to a heading)
-- Reads all plain paragraphs within the section
-- Skips notes or cards, embedded videos, etc., takes just paragraphs
+- Reads the section's text content: plain paragraphs, notes (treated as regular paragraphs), and list items (each `<li>` becomes its own paragraph)
+- If a sentence ends with `:` and is followed by list items, change the `:` to `…`, as colon doesn't work well in carousels, reels, etc.
+- Skips cards, embedded videos, figures, etc.
 - In current working directory (or whatever path user passed in CLI option) creates new subdirectory `handbook-git` and inside another one, `reseni-problemu-s-gitem`
 - Inside the subsubdirectory creates a set of assets
 

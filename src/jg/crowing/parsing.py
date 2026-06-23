@@ -40,10 +40,39 @@ def _iter_paragraphs(heading: Tag):
     for sibling in heading.find_next_siblings():
         if sibling.name in HEADINGS and int(sibling.name[1]) <= level:
             break
-        if sibling.name == "p":
-            runs = _runs(sibling)
+        yield from _paragraphs_from(sibling)
+
+
+def _paragraphs_from(element: Tag):
+    """Yield the paragraphs of a block: a ``<p>``, each ``<li>``, or a note's contents."""
+    if element.name == "p" and "admonition-title" not in (element.get("class") or []):
+        runs = _runs(element)
+        if runs:
+            following = element.find_next_sibling()
+            if following is not None and following.name in ("ul", "ol"):
+                runs = _colon_to_ellipsis(runs)  # a colon reads badly before a list
+            yield runs
+    elif element.name in ("ul", "ol"):
+        for item in element.find_all("li", recursive=False):
+            runs = _runs(item)
             if runs:
                 yield runs
+    elif element.name == "div" and _is_note(element):
+        for child in element.children:
+            if isinstance(child, Tag):
+                yield from _paragraphs_from(child)
+
+
+def _is_note(element: Tag) -> bool:
+    classes = element.get("class") or []
+    return "note" in classes or "admonition" in classes
+
+
+def _colon_to_ellipsis(runs: RichText) -> RichText:
+    *rest, last = runs
+    if last.text.endswith(":"):
+        last = Run(f"{last.text[:-1]}…", last.bold, last.italic)
+    return [*rest, last]
 
 
 def _runs(element: Tag) -> RichText:

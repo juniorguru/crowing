@@ -28,13 +28,29 @@ def test_heading_strips_headerlink(edge_html):
     assert parse_section(edge_html, "target").heading == "Cílová sekce"
 
 
-def test_collects_only_plain_paragraphs(edge_html):
+def test_collects_paragraphs_notes_and_list_items(edge_html):
     paragraphs = parse_section(edge_html, "target").paragraphs
     assert [text_of(p) for p in paragraphs] == [
         "Plain paragraph one with a link, bold and italics.",
         "Plain paragraph two spread over several lines.",
+        "Note paragraph kept as a regular paragraph.",
+        "The list intro ends with a colon…",
+        "First list item as a paragraph.",
+        "Second list item as a paragraph.",
         "Subsection paragraph still belongs to the target section.",
     ]
+
+
+def test_colon_before_a_list_becomes_an_ellipsis(edge_html):
+    texts = [text_of(p) for p in parse_section(edge_html, "target").paragraphs]
+    assert "The list intro ends with a colon…" in texts
+    assert "The list intro ends with a colon:" not in texts
+
+
+def test_skips_cards_videos_and_admonition_titles(edge_html):
+    texts = [text_of(p) for p in parse_section(edge_html, "target").paragraphs]
+    assert "Card paragraph must be skipped." not in texts
+    assert "Poznámka" not in texts
 
 
 def test_preserves_bold_and_italic_and_flattens_links(edge_html):
