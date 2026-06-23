@@ -56,6 +56,15 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Topics text feels like watermark, with text color #e5df67
 - Padding consistent with all other Instagram post images
 
+### LinkedIn: carousel
+
+- Takes all the images created for the Instagram posts and glues them into a single PDF, which LinkedIn accepts as a document/carousel post
+- The PDF is called `carousel.pdf` and lives next to the images
+- One image per page, in the same order as the images (`01.png` first, the call to action last)
+- Pages stay 1080×1080 px (1:1), the size LinkedIn recommends and which most users see on mobile; no resizing or cropping, the images already match
+- Because the carousel mirrors the Instagram post, it naturally stays in LinkedIn's sweet spot of a few focused slides (LinkedIn allows up to 300 pages and 100 MB, but short carousels perform best); the bottom-right arrow on the intro doubles as a "swipe through" cue
+- Branding (colors, fonts, layout) is already consistent across pages because they are the very same images
+
 ### Typography
 
 - If text is on yellow or white, it's #343434
