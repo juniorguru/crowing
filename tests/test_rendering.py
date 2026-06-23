@@ -7,7 +7,6 @@ from jg.crowing.rendering import (
     DARK,
     PADDING,
     READING_WPM,
-    REEL_CTA_GAP,
     REEL_CTA_HEIGHT,
     REEL_CTA_SECONDS,
     REEL_HEIGHT,
@@ -306,7 +305,7 @@ def test_render_reel_is_one_portrait_frame_per_slide():
 
 
 def test_render_cta_can_be_a_taller_two_by_three_card():
-    card = render_cta(["Co je Git"], height=REEL_CTA_HEIGHT, gap=REEL_CTA_GAP)
+    card = render_cta(["Co je Git"], height=REEL_CTA_HEIGHT, stretch=True)
     assert card.size == (SIZE, REEL_CTA_HEIGHT)
     assert REEL_CTA_HEIGHT * 2 == SIZE * 3  # 2:3 portrait
 

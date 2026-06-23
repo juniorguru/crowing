@@ -55,9 +55,9 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
   - says "junior.guru/handbook"
   - has the white [Bootstrap "journals" icon](https://icons.getbootstrap.com/icons/journals/) right before the text
   - is large and has margin equal to the card's padding above and below it
-- Under the button, a cloud built from the page's ToC: dark prefix "Co tam najdeš?", then the topics
+- Under the button, a cloud of the topics built from the page's ToC
 - Each topic is displayed without wrapping; topics on the same line are separated by a middot (·) with spaces
-- The topics are dark gold #998c00 so they read like a watermark on the light yellow, while the prefix is dark
+- The topics are dark gold #998c00 so they read like a watermark on the light yellow
 - The cloud stretches over the full width and fills the bottom remaining height, not a condensed left block
 - The whitespace between topics is proportionally larger than between words within a topic, so it reads as a teaser, not a blob
 - Padding consistent with all other Instagram post images
@@ -77,11 +77,10 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Vertical 9:16, 1080×1920px
 - Each square slide is centered on the 9:16 canvas, padded above and below with that slide's own background colour, so it stays seamless and full-bleed
 - The last call to action slide is slightly different though:
-  - It is 2:3 and vertical gaps are higher to stretch the content to the height
+  - It is 2:3, with equal vertical gaps between the logo, the teaser text, the button and the topics cloud; the gaps absorb all slack so the content spans the card from top to bottom
   - It is then also centered on the 9:16 canvas, padded above and below
-  - The logo, the text above the button, and the topics are significantly larger
-  - The cloud is stacked rather than flowed: the "Co tam najdeš?" line, then a smaller gap, then the topics; this gap is smaller than the big gaps between the logo, the text and the button
-  - The topics block keeps a side padding of half the padding used on the square Instagram images
+  - The logo and the text above the button are significantly larger
+  - The topics block keeps the same side padding as the square Instagram images (no extra top/bottom padding beyond the gaps)
 - H.264 video in an MP4 container, sRGB, 30 fps
 - The first image (the hook) is on screen for 3s, each paragraph slide for as many seconds as needed for reading the text on screen with speed of reading 200wpm, and the call to action for a fixed 10s
 - Plain cut transitions

@@ -37,8 +37,7 @@ CTA_LOGO_WIDTH = round(SIZE * 0.5)  # junior.guru wordmark above the message
 CTA_GAP = 72  # vertical gap between logo, message, button and cloud
 CTA_TOPICS_SIZE = 72
 CTA_TOPICS_COLOR = "#998c00"  # dark gold watermark, readable on the light yellow
-CTA_TOPICS_WEIGHT = 400  # regular weight for the prefix and topics, not bold
-CTA_TOPICS_PREFIX = "Co tam najdeš?"  # dark lead-in before the topics
+CTA_TOPICS_WEIGHT = 400  # regular weight for the topics, not bold
 CTA_TOPICS_SEP = "·"  # middot between topics on the same line
 CTA_MESSAGE_BUDGET = round(CONTENT * 0.42)
 BUTTON_RADIUS_RATIO = 0.1  # only slightly rounded corners, not a pill
@@ -487,10 +486,8 @@ Chip = tuple[str, str, bool]  # text, fill colour, is a topic (gets middots arou
 
 
 def _cloud_chips(topics: list[str]) -> list[Chip]:
-    """Dark prefix, then the gold topics, as one chip stream."""
-    chips: list[Chip] = [(CTA_TOPICS_PREFIX, DARK, False)]
-    chips += [(topic, CTA_TOPICS_COLOR, True) for topic in topics]
-    return chips
+    """The gold topics as one chip stream."""
+    return [(topic, CTA_TOPICS_COLOR, True) for topic in topics]
 
 
 def _cloud_lines(
@@ -574,55 +571,6 @@ def _draw_cloud(
         _draw_cloud_line(draw, line, font, gap, sep_width, y)
 
 
-def fit_stacked_cloud(
-    draw: Draw,
-    topics: list[str],
-    max_width: int,
-    max_height: float,
-    line_gap: float,
-    max_size: int,
-) -> tuple[Font, float, list[list[Chip]]]:
-    """Like :func:`fit_cloud`, but reserving one extra line for the prefix above."""
-    chips = [(topic, CTA_TOPICS_COLOR, True) for topic in topics]
-    prefix = draw.textlength(CTA_TOPICS_PREFIX, font=load_font(20))
-    font = load_font(20, CTA_TOPICS_WEIGHT)
-    gap = draw.textlength(f"   {CTA_TOPICS_SEP}   ", font=font)
-    lines = _cloud_lines(draw, chips, font, gap, max_width)
-    for size in range(max_size, 20, -2):
-        font = load_font(size, CTA_TOPICS_WEIGHT)
-        gap = draw.textlength(f"   {CTA_TOPICS_SEP}   ", font=font)
-        lines = _cloud_lines(draw, chips, font, gap, max_width)
-        block = _line_height(font) * (len(lines) + 1) + line_gap
-        fits = _cloud_fits(draw, lines, font, gap, max_width, max_height)
-        if fits and block <= max_height and prefix <= max_width:
-            break
-    return font, gap, lines
-
-
-def _draw_stacked_cloud(
-    draw: Draw,
-    topics: list[str],
-    region_top: float,
-    region_height: float,
-    line_gap: float,
-    max_size: int,
-    max_width: int,
-) -> None:
-    """Prefix line, gap, then the topics cloud — centered in the region."""
-    font, gap, lines = fit_stacked_cloud(
-        draw, topics, max_width, region_height, line_gap, max_size
-    )
-    step = _line_height(font)
-    sep_width = draw.textlength(CTA_TOPICS_SEP, font=font)
-    block = step * (len(lines) + 1) + line_gap
-    y = region_top + max(region_height - block, 0) / 2
-    _draw_cloud_line(draw, [(CTA_TOPICS_PREFIX, DARK, False)], font, gap, sep_width, y)
-    y += step + line_gap
-    for line in lines:
-        _draw_cloud_line(draw, line, font, gap, sep_width, y)
-        y += step
-
-
 def render_cta(
     topics: list[str] | None = None,
     height: int = SIZE,
@@ -630,16 +578,14 @@ def render_cta(
     logo_width: int = CTA_LOGO_WIDTH,
     message_size: int = CTA_MESSAGE_SIZE,
     topics_size: int = CTA_TOPICS_SIZE,
-    stacked: bool = False,
-    cloud_gap: float = CTA_GAP,
     cloud_width: int = CONTENT,
+    stretch: bool = False,
 ) -> Image.Image:
     """Centered logo, message and flat blue button, then a topics cloud filling the rest.
 
-    ``height`` and ``gap`` default to the square card; the reel passes a taller
-    canvas with wider gaps and a bigger logo, message and topics so the content
-    stretches over the extra height. With ``stacked`` the cloud is laid out as a
-    prefix line, then the topics below it, separated by ``cloud_gap``.
+    ``height``/``gap`` default to the square card. With ``stretch`` the gaps between
+    the four elements are equal and absorb all slack, so the content spans the card
+    top to bottom (used by the taller 2:3 reel call to action).
     """
     topics = topics or []
     image = Image.new("RGB", (SIZE, height), YELLOW)
@@ -647,7 +593,7 @@ def render_cta(
     logo = load_logo(logo_width)
     text_font = load_font(CTA_TEXT_SIZE, weight=600)
     icon_font = load_icon_font(CTA_ICON_SIZE)
-    button_width, button_height = _button_size(draw, text_font, icon_font)
+    button = _button_size(draw, text_font, icon_font)
     message_font, message_lines = fit_plain(
         draw,
         CTA_MESSAGE,
@@ -656,24 +602,94 @@ def render_cta(
         message_size,
         make_font=lambda size: load_font(size, CTA_MESSAGE_WEIGHT),
     )
+    args = (
+        draw,
+        image,
+        logo,
+        message_font,
+        message_lines,
+        button,
+        text_font,
+        icon_font,
+    )
+    if stretch:
+        _draw_cta_stretched(*args, topics, topics_size, cloud_width, height)
+    else:
+        _draw_cta_stacked(*args, topics, topics_size, cloud_width, height, gap)
+    return image
+
+
+def _draw_cta_stacked(
+    draw,
+    image,
+    logo,
+    message_font,
+    message_lines,
+    button,
+    text_font,
+    icon_font,
+    topics,
+    topics_size,
+    cloud_width,
+    height,
+    gap,
+):
+    """Logo at the top, fixed ``gap`` between elements, the cloud filling the rest."""
+    button_width, button_height = button
     top = float(PADDING)
     image.paste(logo, (int((SIZE - logo.width) / 2), int(top)), logo)
-    top += logo.height + gap  # same gap as below the message
+    top += logo.height + gap
     top = _draw_center(draw, message_lines, message_font, DARK, top)
     button_top = top + gap
     _draw_button(draw, (SIZE - button_width) / 2, button_top, text_font, icon_font)
     cloud_top = button_top + button_height + gap
     cloud_height = height - PADDING - cloud_top
-    if topics and cloud_height > 0 and stacked:
-        _draw_stacked_cloud(
-            draw, topics, cloud_top, cloud_height, cloud_gap, topics_size, cloud_width
-        )
-    elif topics and cloud_height > 0:
-        font, gap, lines = fit_cloud(
+    if topics and cloud_height > 0:
+        font, cloud_gap, lines = fit_cloud(
             draw, _cloud_chips(topics), cloud_width, cloud_height, max_size=topics_size
         )
-        _draw_cloud(draw, lines, font, gap, cloud_top, cloud_height)
-    return image
+        _draw_cloud(draw, lines, font, cloud_gap, cloud_top, cloud_height)
+
+
+def _draw_cta_stretched(
+    draw,
+    image,
+    logo,
+    message_font,
+    message_lines,
+    button,
+    text_font,
+    icon_font,
+    topics,
+    topics_size,
+    cloud_width,
+    height,
+):
+    """Equal gaps between the four elements, absorbing all slack top to bottom."""
+    button_width, button_height = button
+    message_height = _line_height(message_font) * len(message_lines)
+    available = height - 2 * PADDING
+    fixed = logo.height + message_height + button_height
+    font = cloud_gap = lines = None
+    cloud_height = 0.0
+    if topics and available - fixed > 0:
+        font, cloud_gap, lines = fit_cloud(
+            draw,
+            _cloud_chips(topics),
+            cloud_width,
+            available - fixed,
+            max_size=topics_size,
+        )
+        cloud_height = _line_height(font) * len(lines)
+    step = max((available - fixed - cloud_height) / (3 if lines else 2), 0)
+    top = float(PADDING)
+    image.paste(logo, (int((SIZE - logo.width) / 2), int(top)), logo)
+    top += logo.height + step
+    top = _draw_center(draw, message_lines, message_font, DARK, top) + step
+    _draw_button(draw, (SIZE - button_width) / 2, top, text_font, icon_font)
+    top += button_height + step
+    if lines:
+        _draw_cloud(draw, lines, font, cloud_gap, top, cloud_height)
 
 
 def render_section(section: Section) -> list[Image.Image]:
@@ -695,13 +711,11 @@ REEL_CTA_SECONDS = 10  # the call to action stays a fixed time, regardless of te
 READING_WPM = 200  # reading speed used to time the paragraph slides
 REEL_MAX_SECONDS = 60  # a reel of a minute or longer is too long
 REEL_CTA_HEIGHT = round(SIZE * 3 / 2)  # the reel call to action is 2:3, not square
-REEL_CTA_GAP = 64  # wider gaps than the square card, but leaving the cloud room to grow
-REEL_CTA_CLOUD_GAP = 28  # smaller gap inside the stacked cloud (prefix above topics)
-# the topics block keeps half the padding of the square Instagram images
-REEL_CTA_CLOUD_WIDTH = SIZE - 2 * (PADDING // 2)
+# the topics block keeps the same side padding as the square Instagram images
+REEL_CTA_CLOUD_WIDTH = CONTENT
 REEL_CTA_LOGO_WIDTH = round(SIZE * 0.62)  # bigger logo on the reel card
 REEL_CTA_MESSAGE_SIZE = 64  # bigger message on the reel card
-REEL_CTA_TOPICS_SIZE = 112  # cap; the cloud grows to fill the room it is given
+REEL_CTA_TOPICS_SIZE = 44  # cap for the reel topics, a touch smaller than before
 # Royalty-free background track, trimmed to a minute and stored as AAC (the codec
 # the reel uses), so it muxes in by a plain stream copy; see assets/ for the licence.
 REEL_MUSIC = str(_ASSETS / "slideshow-moire-main-version-02-01-15390.m4a")
@@ -725,13 +739,11 @@ def render_reel(section: Section) -> list[Image.Image]:
         render_cta(
             section.topics,
             height=REEL_CTA_HEIGHT,
-            gap=REEL_CTA_GAP,
             logo_width=REEL_CTA_LOGO_WIDTH,
             message_size=REEL_CTA_MESSAGE_SIZE,
             topics_size=REEL_CTA_TOPICS_SIZE,
-            stacked=True,
-            cloud_gap=REEL_CTA_CLOUD_GAP,
             cloud_width=REEL_CTA_CLOUD_WIDTH,
+            stretch=True,
         ),
     ]
     return [to_reel_frame(slide) for slide in slides]
