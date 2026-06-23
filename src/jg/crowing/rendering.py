@@ -605,3 +605,33 @@ def render_section(section: Section) -> list[Image.Image]:
         *(render_paragraph(paragraph) for paragraph in section.paragraphs),
         render_cta(section.topics),
     ]
+
+
+# --- reel (9:16 slideshow) --------------------------------------------------
+
+REEL_WIDTH = 1080
+REEL_HEIGHT = 1920  # 9:16 portrait, as Instagram/YouTube reels expect
+REEL_FPS = 30  # Instagram Reels' native frame rate
+REEL_INTRO_SECONDS = 2  # the hook slide stays short
+REEL_SLIDE_SECONDS = 5  # every other slide gets time to read
+
+
+def to_reel_frame(square: Image.Image) -> Image.Image:
+    """Center a square slide on a 9:16 canvas padded with the slide's own background."""
+    background = square.getpixel((0, 0))
+    frame = Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT), background)
+    frame.paste(
+        square, ((REEL_WIDTH - square.width) // 2, (REEL_HEIGHT - square.height) // 2)
+    )
+    return frame
+
+
+def render_reel(section: Section) -> list[Image.Image]:
+    """Render the carousel slides as 9:16 reel frames."""
+    return [to_reel_frame(slide) for slide in render_section(section)]
+
+
+def reel_frame_counts(slides: int, fps: int = REEL_FPS) -> list[int]:
+    """How many frames each slide holds: the intro for ``REEL_INTRO_SECONDS``, rest longer."""
+    seconds = [REEL_INTRO_SECONDS] + [REEL_SLIDE_SECONDS] * (slides - 1)
+    return [round(second * fps) for second in seconds[:slides]]

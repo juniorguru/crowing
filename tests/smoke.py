@@ -40,7 +40,9 @@ def check_example(output_dir: Path) -> None:
     assert len(images) >= 3, f"expected at least intro + paragraph + CTA, got {images}"
     assert images == [f"{i:02d}.png" for i in range(1, len(images) + 1)], images
     assert (created / "carousel.pdf").exists(), "carousel.pdf was not created"
-    print(f"example produced {len(images)} images and carousel.pdf")
+    reel = created / "reel.mp4"
+    assert reel.exists() and reel.stat().st_size > 0, "reel.mp4 was not created"
+    print(f"example produced {len(images)} images, carousel.pdf and reel.mp4")
 
 
 def main() -> None:

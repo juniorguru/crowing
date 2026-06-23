@@ -8,9 +8,9 @@ import click
 from jg.crowing.errors import InvalidInputError
 from jg.crowing.fetching import fetch_html
 from jg.crowing.parsing import parse_section
-from jg.crowing.rendering import render_section
+from jg.crowing.rendering import render_section, to_reel_frame
 from jg.crowing.urls import parse_url
-from jg.crowing.writing import write_carousel, write_images
+from jg.crowing.writing import write_carousel, write_images, write_reel
 
 
 @click.command()
@@ -38,4 +38,5 @@ async def _run(url: str, output_dir: Path) -> Path:
     images = render_section(section)
     created = write_images(images, output_dir, handbook_url)
     write_carousel(images, created)
+    write_reel([to_reel_frame(image) for image in images], created)
     return created

@@ -6,6 +6,10 @@ from jg.crowing.rendering import (
     BLUE,
     DARK,
     PADDING,
+    REEL_HEIGHT,
+    REEL_INTRO_SECONDS,
+    REEL_SLIDE_SECONDS,
+    REEL_WIDTH,
     SIZE,
     WHITE,
     YELLOW,
@@ -14,10 +18,13 @@ from jg.crowing.rendering import (
     intro_layout,
     load_font,
     load_mono_font,
+    reel_frame_counts,
     render_cta,
     render_intro,
     render_paragraph,
+    render_reel,
     render_section,
+    to_reel_frame,
     to_words,
     wrap_text,
 )
@@ -268,3 +275,41 @@ def test_render_section_counts_intro_paragraphs_and_cta():
     assert images[0].getpixel((5, 5)) == hex_to_rgb(YELLOW)
     assert images[1].getpixel((5, 5)) == hex_to_rgb(WHITE)
     assert images[-1].getpixel((5, 5)) == hex_to_rgb(YELLOW)
+
+
+def test_reel_frame_is_9_by_16_portrait():
+    frame = to_reel_frame(Image.new("RGB", (SIZE, SIZE), hex_to_rgb(YELLOW)))
+    assert frame.size == (REEL_WIDTH, REEL_HEIGHT)
+    assert REEL_HEIGHT * 9 == REEL_WIDTH * 16
+
+
+def test_reel_frame_pads_with_the_slide_background():
+    frame = to_reel_frame(Image.new("RGB", (SIZE, SIZE), hex_to_rgb(YELLOW)))
+    assert frame.getpixel((5, 5)) == hex_to_rgb(YELLOW)
+    assert frame.getpixel((REEL_WIDTH // 2, REEL_HEIGHT - 5)) == hex_to_rgb(YELLOW)
+
+
+def test_reel_frame_keeps_the_square_content_centered():
+    frame = to_reel_frame(Image.new("RGB", (SIZE, SIZE), hex_to_rgb(WHITE)))
+    assert frame.getpixel((REEL_WIDTH // 2, REEL_HEIGHT // 2)) == hex_to_rgb(WHITE)
+
+
+def test_render_reel_is_one_portrait_frame_per_slide():
+    section = Section(title="T", heading="H", paragraphs=[[Run("a")], [Run("b")]])
+    frames = render_reel(section)
+    assert len(frames) == len(render_section(section))
+    assert all(frame.size == (REEL_WIDTH, REEL_HEIGHT) for frame in frames)
+
+
+def test_reel_frame_counts_short_intro_then_longer_slides():
+    counts = reel_frame_counts(4, fps=30)
+    assert counts == [
+        REEL_INTRO_SECONDS * 30,
+        REEL_SLIDE_SECONDS * 30,
+        REEL_SLIDE_SECONDS * 30,
+        REEL_SLIDE_SECONDS * 30,
+    ]
+
+
+def test_reel_frame_counts_handles_a_single_slide():
+    assert reel_frame_counts(1, fps=30) == [REEL_INTRO_SECONDS * 30]
