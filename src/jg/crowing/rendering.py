@@ -3,6 +3,7 @@
 import re
 from functools import lru_cache
 from importlib.resources import files
+from typing import NamedTuple
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -40,10 +41,14 @@ _FONT_PATHS = {
 }
 _ICON_PATH = str(_ASSETS / "bootstrap-icons.ttf")
 _MONO_PATH = str(_ASSETS / "LiberationMono.ttf")
+# chick.png is rasterized from chick-icon.svg (junior.guru mascot); see `make assets`.
+_CHICK_PATH = str(_ASSETS / "chick.png")
 _OPTICAL_SIZE_MAX = 32
+CHICK_WIDTH = round(SIZE * 0.32)
 
 Segment = tuple[str, bool, bool]
 Word = list[Segment]
+Box = tuple[float, float, float, float]
 Font = ImageFont.FreeTypeFont
 Draw = ImageDraw.ImageDraw
 
@@ -70,6 +75,14 @@ def load_icon_font(size: int) -> Font:
 def load_mono_font(size: int) -> Font:
     """Load the bundled Liberation Mono font at ``size`` pixels (for monospace text)."""
     return ImageFont.truetype(_MONO_PATH, size)
+
+
+@lru_cache(maxsize=None)
+def load_chick(width: int) -> Image.Image:
+    """Load the bundled chick illustration scaled to ``width`` pixels (keeps alpha)."""
+    chick = Image.open(_CHICK_PATH).convert("RGBA")
+    height = round(width * chick.height / chick.width)
+    return chick.resize((width, height))
 
 
 def _line_height(font: Font) -> float:
@@ -119,9 +132,14 @@ def _block_fits(draw: Draw, lines: list[str], font: Font, max_width: int) -> boo
 
 
 def fit_intro(
-    draw: Draw, title: str, heading: str, max_size: int = 130, min_size: int = 20
+    draw: Draw,
+    title: str,
+    heading: str,
+    max_size: int = 130,
+    min_size: int = 20,
+    max_height: int = CONTENT,
 ) -> tuple[list[str], list[str], Font, Font]:
-    """Pick the largest heading size (monospace title scaled down) at which the intro fits."""
+    """Pick the largest heading size (monospace title scaled down) that fits the box."""
     title_font = load_mono_font(min_size)
     heading_font = load_font(min_size, 700)
     title_lines = wrap_text(draw, title, title_font, CONTENT)
@@ -135,7 +153,7 @@ def fit_intro(
         widths_ok = _block_fits(draw, title_lines, title_font, CONTENT) and _block_fits(
             draw, heading_lines, heading_font, CONTENT
         )
-        if widths_ok and height <= CONTENT:
+        if widths_ok and height <= max_height:
             break
     return title_lines, heading_lines, title_font, heading_font
 
@@ -158,18 +176,64 @@ def _draw_left(
     return top + step * len(lines)
 
 
+class IntroLayout(NamedTuple):
+    title_lines: list[str]
+    heading_lines: list[str]
+    title_font: Font
+    heading_font: Font
+    top: float
+    chick: Image.Image
+    chick_box: Box
+    text_box: Box
+
+
+def intro_layout(draw: Draw, title: str, heading: str) -> IntroLayout:
+    """Lay out the intro text above a bottom-right chick so the two never collide."""
+    chick = load_chick(CHICK_WIDTH)
+    chick_box = (
+        SIZE - PADDING - chick.width,
+        SIZE - PADDING - chick.height,
+        SIZE - PADDING,
+        SIZE - PADDING,
+    )
+    text_height_budget = chick_box[1] - PADDING
+    lines = fit_intro(draw, title, heading, max_height=text_height_budget)
+    title_lines, heading_lines, title_font, heading_font = lines
+    text_height = _intro_height(title_lines, title_font, heading_lines, heading_font)
+    text_width = _intro_width(
+        draw, title_lines, title_font, heading_lines, heading_font
+    )
+    top = PADDING + (text_height_budget - text_height) / 2
+    text_box = (PADDING, top, PADDING + text_width, top + text_height)
+    return IntroLayout(
+        title_lines,
+        heading_lines,
+        title_font,
+        heading_font,
+        top,
+        chick,
+        chick_box,
+        text_box,
+    )
+
+
+def _intro_width(
+    draw: Draw, title_lines, title_font: Font, heading_lines, heading_font: Font
+) -> float:
+    title = (draw.textlength(line, font=title_font) for line in title_lines)
+    heading = (draw.textlength(line, font=heading_font) for line in heading_lines)
+    return max(*title, *heading)
+
+
 def render_intro(title: str, heading: str) -> Image.Image:
-    """The opening slide: a small monospace title, a line break, then the larger heading."""
+    """Intro slide: small monospace title, larger heading, chick in the bottom-right."""
     image = Image.new("RGB", (SIZE, SIZE), YELLOW)
     draw = ImageDraw.Draw(image)
-    title_lines, heading_lines, title_font, heading_font = fit_intro(
-        draw, title, heading
-    )
-    height = _intro_height(title_lines, title_font, heading_lines, heading_font)
-    top = (SIZE - height) / 2
-    top = _draw_left(draw, title_lines, title_font, DARK, top)
-    top += _line_height(heading_font) * INTRO_GAP_RATIO
-    _draw_left(draw, heading_lines, heading_font, DARK, top)
+    layout = intro_layout(draw, title, heading)
+    top = _draw_left(draw, layout.title_lines, layout.title_font, DARK, layout.top)
+    top += _line_height(layout.heading_font) * INTRO_GAP_RATIO
+    _draw_left(draw, layout.heading_lines, layout.heading_font, DARK, top)
+    image.paste(layout.chick, (layout.chick_box[0], layout.chick_box[1]), layout.chick)
     return image
 
 

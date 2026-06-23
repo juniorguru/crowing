@@ -11,6 +11,7 @@ from jg.crowing.rendering import (
     YELLOW,
     fit_intro,
     glue_words,
+    intro_layout,
     load_font,
     load_mono_font,
     render_cta,
@@ -70,6 +71,25 @@ def test_intro_heading_uses_inter(draw):
 def test_intro_heading_does_not_orphan_single_letter_word(draw):
     _, heading_lines, _, _ = fit_intro(draw, "Git a GitHub", "Řešení problémů s Gitem")
     assert all(line.split()[-1] != "s" for line in heading_lines)
+
+
+def test_intro_has_chick_in_bottom_right(draw):
+    layout = intro_layout(draw, "Git a GitHub", "Řešení problémů s Gitem")
+    x0, y0, x1, y1 = layout.chick_box
+    assert (
+        x1 == SIZE - PADDING
+        and y1 == SIZE - PADDING
+        and x0 > SIZE // 2
+        and y0 > SIZE // 2
+    )
+
+
+def test_intro_text_does_not_collide_with_chick(draw):
+    layout = intro_layout(draw, "Git a GitHub", "Řešení problémů s Gitem")
+    tx0, ty0, tx1, ty1 = layout.text_box
+    cx0, cy0, cx1, cy1 = layout.chick_box
+    overlaps = tx0 < cx1 and cx0 < tx1 and ty0 < cy1 and cy0 < ty1
+    assert not overlaps
 
 
 def test_intro_text_is_left_aligned():

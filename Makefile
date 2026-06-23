@@ -1,4 +1,4 @@
-.PHONY: install test format build smoke demo verify clean
+.PHONY: install test format assets build smoke demo verify clean
 
 # Install dependencies into the project virtualenv.
 install:
@@ -13,6 +13,10 @@ test:
 format:
 	uv run ruff check --fix
 	uv run ruff format
+
+# Regenerate raster assets from their vector sources (chick.png from chick-icon.svg).
+assets:
+	uv run --with cairosvg python -c "import cairosvg; cairosvg.svg2png(url='src/jg/crowing/assets/chick-icon.svg', write_to='src/jg/crowing/assets/chick.png', output_width=1080)"
 
 # Build the source distribution and the wheel.
 build:

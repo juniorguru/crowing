@@ -16,7 +16,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - In current working directory (or whatever path user passed in CLI option) creates new subdirectory `handbook-git` and inside another one, `reseni-problemu-s-gitem`
 - Inside the subsubdirectory creates a set of Instagram-ready square images
 - The images are sorted by filename: 01.png, 02.png, etc.
-- First image is intro. It has #fffa72 background and #343434 text. It contains the title of the page, new line, and the heading. In this case "Git a GitHub" and "Řešení problémů s Gitem". The H1 text is monospace and smaller. The heading is larger and more important. The texts are aligned to left. Beautiful typography and composition.
+- First image is intro. It has #fffa72 background and #343434 text. It contains the title of the page, new line, and the heading. In this case "Git a GitHub" and "Řešení problémů s Gitem". The H1 text is monospace and smaller. The heading is larger and more important. The texts are aligned to left. The image contains an illustration of a chick in bottom right corner, with a bit of padding from the image border. Beautiful typography and composition. The text and illustration must not collide.
 - Then there is one image for each paragraph. It has white background and #343434 text. The text is aligned to left. The size of the text is adjusted so that it's as large as possible, but it must fit the image, including some padding. The padding is consistent across all images.
 - The text in the images renders links as plain text, but preserves other inline markup, such as bold, italics, etc.
 - The text never breaks after a single-letter word. E.g. "Řešení problémů s Gitem" must never break between "s" and "Gitem"
