@@ -37,9 +37,8 @@ CTA_LOGO_WIDTH = round(SIZE * 0.5)  # junior.guru wordmark above the message
 CTA_GAP = 72  # vertical gap between logo, message, button and cloud
 CTA_TOPICS_SIZE = 72
 CTA_TOPICS_COLOR = "#998c00"  # dark gold watermark, readable on the light yellow
-CTA_TOPICS_WEIGHT = 700
-CTA_TOPICS_PREFIX = "Co tam ještě najdeš?"  # dark lead-in before the topics
-CTA_TOPICS_SUFFIX = "ZDARMA!"  # dark sign-off after the topics
+CTA_TOPICS_WEIGHT = 400  # regular weight for the prefix and topics, not bold
+CTA_TOPICS_PREFIX = "Co tam najdeš?"  # dark lead-in before the topics
 CTA_TOPICS_SEP = "·"  # middot between topics on the same line
 CTA_MESSAGE_BUDGET = round(CONTENT * 0.42)
 BUTTON_RADIUS_RATIO = 0.1  # only slightly rounded corners, not a pill
@@ -488,10 +487,9 @@ Chip = tuple[str, str, bool]  # text, fill colour, is a topic (gets middots arou
 
 
 def _cloud_chips(topics: list[str]) -> list[Chip]:
-    """Dark prefix, gold topics, then dark suffix, as one chip stream."""
+    """Dark prefix, then the gold topics, as one chip stream."""
     chips: list[Chip] = [(CTA_TOPICS_PREFIX, DARK, False)]
     chips += [(topic, CTA_TOPICS_COLOR, True) for topic in topics]
-    chips += [(CTA_TOPICS_SUFFIX, DARK, False)]
     return chips
 
 
@@ -525,19 +523,44 @@ def _cloud_fits(draw, lines, font: Font, gap: float, max_width, max_height) -> b
 
 
 def fit_cloud(
-    draw: Draw, chips: list[Chip], max_width: int, max_height: float
+    draw: Draw,
+    chips: list[Chip],
+    max_width: int,
+    max_height: float,
+    max_size: int = CTA_TOPICS_SIZE,
 ) -> tuple[Font, float, list[list[Chip]]]:
     """Pick the largest watermark size at which the spaced-out chips fill the box."""
     font = load_font(20, CTA_TOPICS_WEIGHT)
     gap = draw.textlength(f"   {CTA_TOPICS_SEP}   ", font=font)
     lines = _cloud_lines(draw, chips, font, gap, max_width)
-    for size in range(CTA_TOPICS_SIZE, 20, -2):
+    for size in range(max_size, 20, -2):
         font = load_font(size, CTA_TOPICS_WEIGHT)
         gap = draw.textlength(f"   {CTA_TOPICS_SEP}   ", font=font)
         lines = _cloud_lines(draw, chips, font, gap, max_width)
         if _cloud_fits(draw, lines, font, gap, max_width, max_height):
             break
     return font, gap, lines
+
+
+def _draw_cloud_line(
+    draw: Draw, line: list[Chip], font: Font, gap: float, sep_width: float, y: float
+) -> None:
+    """Draw one centered line of chips, with a middot between adjacent topics."""
+    widths = [draw.textlength(chip[0], font=font) for chip in line]
+    total = sum(widths) + gap * (len(line) - 1)
+    x = (SIZE - total) / 2
+    for position, ((text, fill, is_topic), chip_width) in enumerate(zip(line, widths)):
+        draw.text((x, y), text, font=font, fill=fill)
+        x += chip_width
+        if position + 1 < len(line):
+            if is_topic and line[position + 1][2]:  # middot between two topics
+                draw.text(
+                    (x + (gap - sep_width) / 2, y),
+                    CTA_TOPICS_SEP,
+                    font=font,
+                    fill=CTA_TOPICS_COLOR,
+                )
+            x += gap
 
 
 def _draw_cloud(
@@ -547,32 +570,81 @@ def _draw_cloud(
     band = region_height / len(lines)  # spread the lines across the whole region
     sep_width = draw.textlength(CTA_TOPICS_SEP, font=font)
     for index, line in enumerate(lines):
-        widths = [draw.textlength(chip[0], font=font) for chip in line]
-        total = sum(widths) + gap * (len(line) - 1)
-        x = (SIZE - total) / 2
         y = region_top + band * (index + 0.5) - step / 2
-        for position, ((text, fill, is_topic), chip_width) in enumerate(
-            zip(line, widths)
-        ):
-            draw.text((x, y), text, font=font, fill=fill)
-            x += chip_width
-            if position + 1 < len(line):
-                if is_topic and line[position + 1][2]:  # middot between two topics
-                    draw.text(
-                        (x + (gap - sep_width) / 2, y),
-                        CTA_TOPICS_SEP,
-                        font=font,
-                        fill=CTA_TOPICS_COLOR,
-                    )
-                x += gap
+        _draw_cloud_line(draw, line, font, gap, sep_width, y)
 
 
-def render_cta(topics: list[str] | None = None) -> Image.Image:
-    """Centered logo, message and flat blue button, then a topics cloud filling the rest."""
+def fit_stacked_cloud(
+    draw: Draw,
+    topics: list[str],
+    max_width: int,
+    max_height: float,
+    line_gap: float,
+    max_size: int,
+) -> tuple[Font, float, list[list[Chip]]]:
+    """Like :func:`fit_cloud`, but reserving one extra line for the prefix above."""
+    chips = [(topic, CTA_TOPICS_COLOR, True) for topic in topics]
+    prefix = draw.textlength(CTA_TOPICS_PREFIX, font=load_font(20))
+    font = load_font(20, CTA_TOPICS_WEIGHT)
+    gap = draw.textlength(f"   {CTA_TOPICS_SEP}   ", font=font)
+    lines = _cloud_lines(draw, chips, font, gap, max_width)
+    for size in range(max_size, 20, -2):
+        font = load_font(size, CTA_TOPICS_WEIGHT)
+        gap = draw.textlength(f"   {CTA_TOPICS_SEP}   ", font=font)
+        lines = _cloud_lines(draw, chips, font, gap, max_width)
+        block = _line_height(font) * (len(lines) + 1) + line_gap
+        fits = _cloud_fits(draw, lines, font, gap, max_width, max_height)
+        if fits and block <= max_height and prefix <= max_width:
+            break
+    return font, gap, lines
+
+
+def _draw_stacked_cloud(
+    draw: Draw,
+    topics: list[str],
+    region_top: float,
+    region_height: float,
+    line_gap: float,
+    max_size: int,
+    max_width: int,
+) -> None:
+    """Prefix line, gap, then the topics cloud — centered in the region."""
+    font, gap, lines = fit_stacked_cloud(
+        draw, topics, max_width, region_height, line_gap, max_size
+    )
+    step = _line_height(font)
+    sep_width = draw.textlength(CTA_TOPICS_SEP, font=font)
+    block = step * (len(lines) + 1) + line_gap
+    y = region_top + max(region_height - block, 0) / 2
+    _draw_cloud_line(draw, [(CTA_TOPICS_PREFIX, DARK, False)], font, gap, sep_width, y)
+    y += step + line_gap
+    for line in lines:
+        _draw_cloud_line(draw, line, font, gap, sep_width, y)
+        y += step
+
+
+def render_cta(
+    topics: list[str] | None = None,
+    height: int = SIZE,
+    gap: float = CTA_GAP,
+    logo_width: int = CTA_LOGO_WIDTH,
+    message_size: int = CTA_MESSAGE_SIZE,
+    topics_size: int = CTA_TOPICS_SIZE,
+    stacked: bool = False,
+    cloud_gap: float = CTA_GAP,
+    cloud_width: int = CONTENT,
+) -> Image.Image:
+    """Centered logo, message and flat blue button, then a topics cloud filling the rest.
+
+    ``height`` and ``gap`` default to the square card; the reel passes a taller
+    canvas with wider gaps and a bigger logo, message and topics so the content
+    stretches over the extra height. With ``stacked`` the cloud is laid out as a
+    prefix line, then the topics below it, separated by ``cloud_gap``.
+    """
     topics = topics or []
-    image = Image.new("RGB", (SIZE, SIZE), YELLOW)
+    image = Image.new("RGB", (SIZE, height), YELLOW)
     draw = ImageDraw.Draw(image)
-    logo = load_logo(CTA_LOGO_WIDTH)
+    logo = load_logo(logo_width)
     text_font = load_font(CTA_TEXT_SIZE, weight=600)
     icon_font = load_icon_font(CTA_ICON_SIZE)
     button_width, button_height = _button_size(draw, text_font, icon_font)
@@ -581,19 +653,25 @@ def render_cta(topics: list[str] | None = None) -> Image.Image:
         CTA_MESSAGE,
         CONTENT,
         CTA_MESSAGE_BUDGET,
-        CTA_MESSAGE_SIZE,
+        message_size,
         make_font=lambda size: load_font(size, CTA_MESSAGE_WEIGHT),
     )
     top = float(PADDING)
     image.paste(logo, (int((SIZE - logo.width) / 2), int(top)), logo)
-    top += logo.height + CTA_GAP  # same gap as below the message
+    top += logo.height + gap  # same gap as below the message
     top = _draw_center(draw, message_lines, message_font, DARK, top)
-    button_top = top + CTA_GAP
+    button_top = top + gap
     _draw_button(draw, (SIZE - button_width) / 2, button_top, text_font, icon_font)
-    cloud_top = button_top + button_height + CTA_GAP
-    cloud_height = SIZE - PADDING - cloud_top
-    if topics and cloud_height > 0:
-        font, gap, lines = fit_cloud(draw, _cloud_chips(topics), CONTENT, cloud_height)
+    cloud_top = button_top + button_height + gap
+    cloud_height = height - PADDING - cloud_top
+    if topics and cloud_height > 0 and stacked:
+        _draw_stacked_cloud(
+            draw, topics, cloud_top, cloud_height, cloud_gap, topics_size, cloud_width
+        )
+    elif topics and cloud_height > 0:
+        font, gap, lines = fit_cloud(
+            draw, _cloud_chips(topics), cloud_width, cloud_height, max_size=topics_size
+        )
         _draw_cloud(draw, lines, font, gap, cloud_top, cloud_height)
     return image
 
@@ -612,26 +690,65 @@ def render_section(section: Section) -> list[Image.Image]:
 REEL_WIDTH = 1080
 REEL_HEIGHT = 1920  # 9:16 portrait, as Instagram/YouTube reels expect
 REEL_FPS = 30  # Instagram Reels' native frame rate
-REEL_INTRO_SECONDS = 2  # the hook slide stays short
-REEL_SLIDE_SECONDS = 5  # every other slide gets time to read
+REEL_HOOK_SECONDS = 3  # the intro hook stays on screen this long
+REEL_CTA_SECONDS = 10  # the call to action stays a fixed time, regardless of text
+READING_WPM = 200  # reading speed used to time the paragraph slides
+REEL_MAX_SECONDS = 60  # a reel of a minute or longer is too long
+REEL_CTA_HEIGHT = round(SIZE * 3 / 2)  # the reel call to action is 2:3, not square
+REEL_CTA_GAP = 64  # wider gaps than the square card, but leaving the cloud room to grow
+REEL_CTA_CLOUD_GAP = 28  # smaller gap inside the stacked cloud (prefix above topics)
+# the topics block keeps half the padding of the square Instagram images
+REEL_CTA_CLOUD_WIDTH = SIZE - 2 * (PADDING // 2)
+REEL_CTA_LOGO_WIDTH = round(SIZE * 0.62)  # bigger logo on the reel card
+REEL_CTA_MESSAGE_SIZE = 64  # bigger message on the reel card
+REEL_CTA_TOPICS_SIZE = 112  # cap; the cloud grows to fill the room it is given
+# Royalty-free background track, trimmed to a minute and stored as AAC (the codec
+# the reel uses), so it muxes in by a plain stream copy; see assets/ for the licence.
+REEL_MUSIC = str(_ASSETS / "slideshow-moire-main-version-02-01-15390.m4a")
 
 
-def to_reel_frame(square: Image.Image) -> Image.Image:
-    """Center a square slide on a 9:16 canvas padded with the slide's own background."""
-    background = square.getpixel((0, 0))
+def to_reel_frame(slide: Image.Image) -> Image.Image:
+    """Center a slide on a 9:16 canvas padded with the slide's own background."""
+    background = slide.getpixel((0, 0))
     frame = Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT), background)
     frame.paste(
-        square, ((REEL_WIDTH - square.width) // 2, (REEL_HEIGHT - square.height) // 2)
+        slide, ((REEL_WIDTH - slide.width) // 2, (REEL_HEIGHT - slide.height) // 2)
     )
     return frame
 
 
 def render_reel(section: Section) -> list[Image.Image]:
-    """Render the carousel slides as 9:16 reel frames."""
-    return [to_reel_frame(slide) for slide in render_section(section)]
+    """Render the carousel as 9:16 reel frames; the call to action is a taller 2:3 card."""
+    slides = [
+        render_intro(section.title, section.heading),
+        *(render_paragraph(paragraph) for paragraph in section.paragraphs),
+        render_cta(
+            section.topics,
+            height=REEL_CTA_HEIGHT,
+            gap=REEL_CTA_GAP,
+            logo_width=REEL_CTA_LOGO_WIDTH,
+            message_size=REEL_CTA_MESSAGE_SIZE,
+            topics_size=REEL_CTA_TOPICS_SIZE,
+            stacked=True,
+            cloud_gap=REEL_CTA_CLOUD_GAP,
+            cloud_width=REEL_CTA_CLOUD_WIDTH,
+        ),
+    ]
+    return [to_reel_frame(slide) for slide in slides]
 
 
-def reel_frame_counts(slides: int, fps: int = REEL_FPS) -> list[int]:
-    """How many frames each slide holds: the intro for ``REEL_INTRO_SECONDS``, rest longer."""
-    seconds = [REEL_INTRO_SECONDS] + [REEL_SLIDE_SECONDS] * (slides - 1)
-    return [round(second * fps) for second in seconds[:slides]]
+def reading_seconds(text: str, wpm: int = READING_WPM) -> float:
+    """How long it takes to read ``text`` at ``wpm`` words per minute."""
+    return len(text.split()) / wpm * 60
+
+
+def reel_durations(section: Section) -> list[float]:
+    """Seconds per reel slide: a fixed hook, paragraphs by reading speed, a fixed CTA."""
+    paragraphs = [
+        "".join(run.text for run in paragraph) for paragraph in section.paragraphs
+    ]
+    return [
+        float(REEL_HOOK_SECONDS),
+        *(reading_seconds(paragraph) for paragraph in paragraphs),
+        float(REEL_CTA_SECONDS),
+    ]

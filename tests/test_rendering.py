@@ -6,9 +6,12 @@ from jg.crowing.rendering import (
     BLUE,
     DARK,
     PADDING,
+    READING_WPM,
+    REEL_CTA_GAP,
+    REEL_CTA_HEIGHT,
+    REEL_CTA_SECONDS,
     REEL_HEIGHT,
-    REEL_INTRO_SECONDS,
-    REEL_SLIDE_SECONDS,
+    REEL_HOOK_SECONDS,
     REEL_WIDTH,
     SIZE,
     WHITE,
@@ -18,7 +21,8 @@ from jg.crowing.rendering import (
     intro_layout,
     load_font,
     load_mono_font,
-    reel_frame_counts,
+    reading_seconds,
+    reel_durations,
     render_cta,
     render_intro,
     render_paragraph,
@@ -301,15 +305,26 @@ def test_render_reel_is_one_portrait_frame_per_slide():
     assert all(frame.size == (REEL_WIDTH, REEL_HEIGHT) for frame in frames)
 
 
-def test_reel_frame_counts_short_intro_then_longer_slides():
-    counts = reel_frame_counts(4, fps=30)
-    assert counts == [
-        REEL_INTRO_SECONDS * 30,
-        REEL_SLIDE_SECONDS * 30,
-        REEL_SLIDE_SECONDS * 30,
-        REEL_SLIDE_SECONDS * 30,
-    ]
+def test_render_cta_can_be_a_taller_two_by_three_card():
+    card = render_cta(["Co je Git"], height=REEL_CTA_HEIGHT, gap=REEL_CTA_GAP)
+    assert card.size == (SIZE, REEL_CTA_HEIGHT)
+    assert REEL_CTA_HEIGHT * 2 == SIZE * 3  # 2:3 portrait
 
 
-def test_reel_frame_counts_handles_a_single_slide():
-    assert reel_frame_counts(1, fps=30) == [REEL_INTRO_SECONDS * 30]
+def test_reading_seconds_scales_with_word_count():
+    assert reading_seconds("word " * 200, wpm=200) == pytest.approx(60)
+    assert reading_seconds("word " * 100, wpm=200) == pytest.approx(30)
+
+
+def test_reel_durations_fixed_hook_reading_paragraphs_fixed_cta():
+    section = Section(
+        title="T",
+        heading="H",
+        paragraphs=[[Run("word " * 100)]],  # 100 words -> 30s at 200 wpm
+        topics=["Co je Git"],
+    )
+    durations = reel_durations(section)
+    assert len(durations) == 1 + 1 + 1  # hook + paragraph + cta
+    assert durations[0] == REEL_HOOK_SECONDS
+    assert durations[1] == pytest.approx(100 / READING_WPM * 60)
+    assert durations[-1] == REEL_CTA_SECONDS

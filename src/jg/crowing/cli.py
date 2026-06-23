@@ -8,7 +8,12 @@ import click
 from jg.crowing.errors import InvalidInputError
 from jg.crowing.fetching import fetch_html
 from jg.crowing.parsing import parse_section
-from jg.crowing.rendering import render_section, to_reel_frame
+from jg.crowing.rendering import (
+    REEL_MAX_SECONDS,
+    reel_durations,
+    render_reel,
+    render_section,
+)
 from jg.crowing.urls import parse_url
 from jg.crowing.writing import write_carousel, write_images, write_reel
 
@@ -28,15 +33,22 @@ def main(url: str, output_dir: Path) -> None:
         output = asyncio.run(_run(url, output_dir))
     except InvalidInputError as error:
         raise click.BadParameter(str(error), param_hint="URL") from error
-    click.echo(f"Created images and carousel.pdf in {output}")
+    click.echo(f"Created all assets in {output}")
 
 
 async def _run(url: str, output_dir: Path) -> Path:
     handbook_url = parse_url(url)
     html = await fetch_html(url)
     section = parse_section(html, handbook_url.anchor)
+    durations = reel_durations(section)
+    total = sum(durations)
+    if total >= REEL_MAX_SECONDS:
+        raise InvalidInputError(
+            f"The reel would be {round(total)}s long; keep it under {REEL_MAX_SECONDS}s "
+            "by choosing a section with fewer or shorter paragraphs"
+        )
     images = render_section(section)
     created = write_images(images, output_dir, handbook_url)
     write_carousel(images, created)
-    write_reel([to_reel_frame(image) for image in images], created)
+    write_reel(render_reel(section), created, durations)
     return created
