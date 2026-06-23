@@ -81,9 +81,52 @@ def test_background_color(image, color):
     assert image.getpixel((5, 5)) == hex_to_rgb(color)
 
 
-def test_cta_has_blue_button_in_the_centre():
+def _button_bbox(image) -> tuple[int, int, int, int]:
+    blue = hex_to_rgb(BLUE)
+    pixels = image.load()
+    xs = [x for x in range(SIZE) for y in range(SIZE) if pixels[x, y] == blue]
+    ys = [y for y in range(SIZE) for x in range(SIZE) if pixels[x, y] == blue]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def test_cta_button_is_bootstrap_blue_with_white_glyphs():
     image = render_cta()
-    assert image.getpixel((SIZE // 2, SIZE // 2)) == hex_to_rgb(BLUE)
+    pixels = image.load()
+    blue, white = hex_to_rgb(BLUE), hex_to_rgb(WHITE)
+    blues = sum(pixels[x, y] == blue for x in range(SIZE) for y in range(SIZE))
+    whites = sum(pixels[x, y] == white for x in range(SIZE) for y in range(SIZE))
+    assert blues > 20000  # a sizable blue button
+    assert whites > 200  # the icon and the text are white
+
+
+def test_cta_button_corners_are_subtly_rounded_not_a_pill():
+    image = render_cta()
+    pixels = image.load()
+    blue = hex_to_rgb(BLUE)
+    x0, y0, x1, y1 = _button_bbox(image)
+    height = y1 - y0 + 1
+
+    def width_at(y: int) -> int:
+        row = [x for x in range(x0, x1 + 1) if pixels[x, y] == blue]
+        return max(row) - min(row) + 1 if row else 0
+
+    full = width_at((y0 + y1) // 2)
+    # by 15 % down the corner is already full width (a pill would still be far from it)
+    assert width_at(y0 + round(height * 0.15)) >= full - 2
+    # but the very top row is inset by the small radius, so it is not a plain rectangle
+    assert width_at(y0) < full
+
+
+def test_cta_button_icon_sits_left_of_the_text():
+    image = render_cta()
+    pixels = image.load()
+    white = hex_to_rgb(WHITE)
+    x0, _, x1, _ = _button_bbox(image)
+    white_xs = [
+        x for x in range(x0, x1 + 1) for y in range(SIZE) if pixels[x, y] == white
+    ]
+    # leftmost white (icon) is clearly left of the button centre
+    assert min(white_xs) < (x0 + x1) // 2
 
 
 def test_render_paragraph_with_markup_draws_dark_text():

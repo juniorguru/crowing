@@ -19,16 +19,25 @@ INTRO_GAP_RATIO = 0.4
 YELLOW = "#fffa72"
 DARK = "#343434"
 WHITE = "#ffffff"
-BLUE = "#0f62fe"
+BLUE = "#1755d1"  # Bootstrap primary blue, as on junior.guru thumbnails
 
 CTA_TEXT = "junior.guru/handbook"
+CTA_ICON = "\uf447"  # Bootstrap Icons "journals" (U+F447)
+CTA_TEXT_SIZE = 46
+CTA_ICON_SIZE = 50
+CTA_ICON_GAP = 18
+CTA_PADDING_X = 42
+CTA_PADDING_Y = 26
+BUTTON_RADIUS_RATIO = 0.1  # only slightly rounded corners, not a pill
 
 # Inter is bundled under the SIL Open Font License 1.1 (see assets/Inter-LICENSE).
+# Bootstrap Icons is bundled under the MIT License (see assets/bootstrap-icons-LICENSE).
 _ASSETS = files("jg.crowing") / "assets"
 _FONT_PATHS = {
     False: str(_ASSETS / "Inter.ttf"),
     True: str(_ASSETS / "Inter-Italic.ttf"),
 }
+_ICON_PATH = str(_ASSETS / "bootstrap-icons.ttf")
 _OPTICAL_SIZE_MAX = 32
 
 Segment = tuple[str, bool, bool]
@@ -47,6 +56,12 @@ def load_font(size: int, weight: int = 400, italic: bool = False) -> Font:
 
 def _segment_font(size: int, bold: bool, italic: bool) -> Font:
     return load_font(size, 700 if bold else 400, italic)
+
+
+@lru_cache(maxsize=None)
+def load_icon_font(size: int) -> Font:
+    """Load the bundled Bootstrap Icons font at ``size`` pixels."""
+    return ImageFont.truetype(_ICON_PATH, size)
 
 
 def _line_height(size: int) -> float:
@@ -242,16 +257,32 @@ def render_paragraph(runs: RichText) -> Image.Image:
 
 
 def render_cta() -> Image.Image:
-    """The closing call-to-action slide with a flat blue button."""
+    """The closing call-to-action: a flat blue button with the journals icon."""
     image = Image.new("RGB", (SIZE, SIZE), YELLOW)
     draw = ImageDraw.Draw(image)
-    font = load_font(56, weight=600)
-    half_w = draw.textlength(CTA_TEXT, font=font) / 2 + 64
-    half_h = _line_height(56) / LINE_SPACING / 2 + 40
+    text_font = load_font(CTA_TEXT_SIZE, weight=600)
+    icon_font = load_icon_font(CTA_ICON_SIZE)
+    icon_width = draw.textlength(CTA_ICON, font=icon_font)
+    text_width = draw.textlength(CTA_TEXT, font=text_font)
+    content_width = icon_width + CTA_ICON_GAP + text_width
+    ascent, descent = text_font.getmetrics()
+    button_width = content_width + 2 * CTA_PADDING_X
+    button_height = ascent + descent + 2 * CTA_PADDING_Y
     centre = SIZE / 2
-    box = (centre - half_w, centre - half_h, centre + half_w, centre + half_h)
-    draw.rounded_rectangle(box, radius=int(half_h), fill=BLUE)
-    draw.text((centre, centre), CTA_TEXT, font=font, fill=WHITE, anchor="mm")
+    left = centre - button_width / 2
+    box = (
+        left,
+        centre - button_height / 2,
+        left + button_width,
+        centre + button_height / 2,
+    )
+    draw.rounded_rectangle(
+        box, radius=round(button_height * BUTTON_RADIUS_RATIO), fill=BLUE
+    )
+    content_left = centre - content_width / 2
+    draw.text((content_left, centre), CTA_ICON, font=icon_font, fill=WHITE, anchor="lm")
+    text_left = content_left + icon_width + CTA_ICON_GAP
+    draw.text((text_left, centre), CTA_TEXT, font=text_font, fill=WHITE, anchor="lm")
     return image
 
 
