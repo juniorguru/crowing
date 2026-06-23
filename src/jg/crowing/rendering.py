@@ -1,6 +1,7 @@
 """Pure functions turning a :class:`Section` into Instagram-ready square images."""
 
 import re
+from collections.abc import Callable
 from functools import lru_cache
 from importlib.resources import files
 from typing import NamedTuple
@@ -22,20 +23,24 @@ DARK = "#343434"
 WHITE = "#ffffff"
 BLUE = "#1755d1"  # Bootstrap primary blue, as on junior.guru thumbnails
 
-CTA_MESSAGE = "V\u00edce o tomto t\u00e9matu najde\u0161 v p\u0159\u00edru\u010dce"
-CTA_MESSAGE_SIZE = 64
+CTA_MESSAGE = "Zaj\u00edm\u00e1 t\u011b tohle t\u00e9ma?\nOtev\u0159i si p\u0159\u00edru\u010dku a \u010dti d\u00e1l!"
+CTA_MESSAGE_SIZE = 48  # smaller than the logo and topics
 CTA_MESSAGE_WEIGHT = 600
 CTA_TEXT = "junior.guru/handbook"
 CTA_ICON = "\uf447"  # Bootstrap Icons "journals" (U+F447)
-CTA_TEXT_SIZE = 46
-CTA_ICON_SIZE = 50
-CTA_ICON_GAP = 18
-CTA_PADDING_X = 42
-CTA_PADDING_Y = 26
-CTA_GAP = 56  # space between the message and the button
-CTA_TOPICS_GAP = 48  # space between the button and the topics cloud
-CTA_TOPICS_SIZE = 36
-CTA_TOPICS_COLOR = "#e5df67"  # pale watermark on the yellow background
+CTA_TEXT_SIZE = 56
+CTA_ICON_SIZE = 60
+CTA_ICON_GAP = 22
+CTA_PADDING_X = 56
+CTA_PADDING_Y = 34
+CTA_LOGO_WIDTH = round(SIZE * 0.5)  # junior.guru wordmark above the message
+CTA_GAP = 72  # vertical gap between logo, message, button and cloud
+CTA_TOPICS_SIZE = 72
+CTA_TOPICS_COLOR = "#998c00"  # dark gold watermark, readable on the light yellow
+CTA_TOPICS_WEIGHT = 700
+CTA_TOPICS_PREFIX = "Co tam ještě najdeš?"  # dark lead-in before the topics
+CTA_TOPICS_SUFFIX = "ZDARMA!"  # dark sign-off after the topics
+CTA_TOPICS_SEP = "·"  # middot between topics on the same line
 CTA_MESSAGE_BUDGET = round(CONTENT * 0.42)
 BUTTON_RADIUS_RATIO = 0.1  # only slightly rounded corners, not a pill
 
@@ -51,10 +56,12 @@ _ICON_PATH = str(_ASSETS / "bootstrap-icons.ttf")
 _MONO_PATH = str(_ASSETS / "LiberationMono.ttf")
 # chick.png is rasterized from chick-icon.svg (junior.guru mascot); see `make assets`.
 _CHICK_PATH = str(_ASSETS / "chick.png")
+_LOGO_PATH = str(_ASSETS / "junior-guru.min.png")
 _OPTICAL_SIZE_MAX = 32
 CHICK_WIDTH = round(SIZE * 0.32)
 ARROW_GLYPH = "\uf133"  # Bootstrap Icons "arrow-right-circle-fill" (U+F133)
 ARROW_INSET_RATIO = 0.08  # shrink the white disc so the blue ring hides its edge
+ARROW_RATIO = 2 / 3  # arrow is one third smaller than the chick
 
 Segment = tuple[str, bool, bool]
 Word = list[Segment]
@@ -96,6 +103,14 @@ def load_chick(width: int) -> Image.Image:
 
 
 @lru_cache(maxsize=None)
+def load_logo(width: int) -> Image.Image:
+    """Load the bundled junior.guru wordmark scaled to ``width`` pixels (keeps alpha)."""
+    logo = Image.open(_LOGO_PATH).convert("RGBA")
+    height = round(width * logo.height / logo.width)
+    return logo.resize((width, height))
+
+
+@lru_cache(maxsize=None)
 def load_arrow(size: int) -> Image.Image:
     """Render the arrow-right-circle-fill icon as a blue disc with a white arrow."""
     font = load_icon_font(size)
@@ -120,8 +135,16 @@ def _line_height(font: Font) -> float:
 def wrap_text(draw: Draw, text: str, font: Font, max_width: int) -> list[str]:
     """Greedily wrap ``text`` so that each line fits within ``max_width``.
 
-    A single-letter word never ends a line; it stays glued to the next word.
+    Explicit newlines force a line break; a single-letter word never ends a line,
+    it stays glued to the next word.
     """
+    lines: list[str] = []
+    for paragraph in text.split("\n"):
+        lines.extend(_wrap_paragraph(draw, paragraph, font, max_width))
+    return lines
+
+
+def _wrap_paragraph(draw: Draw, text: str, font: Font, max_width: int) -> list[str]:
     lines: list[str] = []
     current = ""
     for unit in _glue_text(text.split()):
@@ -200,6 +223,16 @@ def _draw_left(
     return top + step * len(lines)
 
 
+def _draw_center(
+    draw: Draw, lines: list[str], font: Font, fill: str, top: float
+) -> float:
+    step = _line_height(font)
+    for index, line in enumerate(lines):
+        x = (SIZE - draw.textlength(line, font=font)) / 2
+        draw.text((x, top + index * step), line, font=font, fill=fill)
+    return top + step * len(lines)
+
+
 class IntroLayout(NamedTuple):
     title_lines: list[str]
     heading_lines: list[str]
@@ -214,17 +247,17 @@ class IntroLayout(NamedTuple):
 
 
 def intro_layout(draw: Draw, title: str, heading: str) -> IntroLayout:
-    """Lay out the intro text above a bottom-left chick and bottom-right arrow."""
+    """Lay out the intro text above a bottom-right chick and bottom-left arrow."""
     chick = load_chick(CHICK_WIDTH)
-    arrow = load_arrow(chick.height)  # same size as the chick
+    arrow = load_arrow(round(chick.height * ARROW_RATIO))  # one third smaller
     bottom = SIZE - PADDING
-    chick_box = (PADDING, bottom - chick.height, PADDING + chick.width, bottom)
-    arrow_box = (
-        SIZE - PADDING - arrow.width,
-        bottom - arrow.height,
+    chick_box = (
+        SIZE - PADDING - chick.width,
+        bottom - chick.height,
         SIZE - PADDING,
         bottom,
     )
+    arrow_box = (PADDING, bottom - arrow.height, PADDING + arrow.width, bottom)
     text_height_budget = min(chick_box[1], arrow_box[1]) - PADDING
     lines = fit_intro(draw, title, heading, max_height=text_height_budget)
     title_lines, heading_lines, title_font, heading_font = lines
@@ -413,14 +446,14 @@ def fit_plain(
     max_width: int,
     max_height: float,
     max_size: int,
-    weight: int = 400,
+    make_font: Callable[[int], Font] = load_font,
     min_size: int = 12,
 ) -> tuple[Font, list[str]]:
     """Pick the largest plain-text size at which the wrapped lines fit the box."""
-    font = load_font(min_size, weight)
+    font = make_font(min_size)
     lines = wrap_text(draw, text, font, max_width)
     for size in range(max_size, min_size, -2):
-        font = load_font(size, weight)
+        font = make_font(size)
         lines = wrap_text(draw, text, font, max_width)
         if _block_fits(draw, lines, font, max_width):
             if _line_height(font) * len(lines) <= max_height:
@@ -451,42 +484,117 @@ def _draw_button(
     draw.text((text_left, middle), CTA_TEXT, font=text_font, fill=WHITE, anchor="lm")
 
 
+Chip = tuple[str, str, bool]  # text, fill colour, is a topic (gets middots around it)
+
+
+def _cloud_chips(topics: list[str]) -> list[Chip]:
+    """Dark prefix, gold topics, then dark suffix, as one chip stream."""
+    chips: list[Chip] = [(CTA_TOPICS_PREFIX, DARK, False)]
+    chips += [(topic, CTA_TOPICS_COLOR, True) for topic in topics]
+    chips += [(CTA_TOPICS_SUFFIX, DARK, False)]
+    return chips
+
+
+def _cloud_lines(
+    draw: Draw, chips: list[Chip], font: Font, gap: float, max_width: int
+) -> list[list[Chip]]:
+    lines: list[list[Chip]] = []
+    line: list[Chip] = []
+    width = 0.0
+    for chip in chips:
+        chip_width = draw.textlength(chip[0], font=font)
+        extra = chip_width + (gap if line else 0.0)
+        if line and width + extra > max_width:
+            lines.append(line)
+            line, width = [chip], chip_width
+        else:
+            line.append(chip)
+            width += extra
+    if line:
+        lines.append(line)
+    return lines
+
+
+def _cloud_fits(draw, lines, font: Font, gap: float, max_width, max_height) -> bool:
+    for line in lines:
+        width = sum(draw.textlength(c[0], font=font) for c in line)
+        width += gap * (len(line) - 1)
+        if width > max_width:
+            return False
+    return _line_height(font) * len(lines) <= max_height
+
+
+def fit_cloud(
+    draw: Draw, chips: list[Chip], max_width: int, max_height: float
+) -> tuple[Font, float, list[list[Chip]]]:
+    """Pick the largest watermark size at which the spaced-out chips fill the box."""
+    font = load_font(20, CTA_TOPICS_WEIGHT)
+    gap = draw.textlength(f"   {CTA_TOPICS_SEP}   ", font=font)
+    lines = _cloud_lines(draw, chips, font, gap, max_width)
+    for size in range(CTA_TOPICS_SIZE, 20, -2):
+        font = load_font(size, CTA_TOPICS_WEIGHT)
+        gap = draw.textlength(f"   {CTA_TOPICS_SEP}   ", font=font)
+        lines = _cloud_lines(draw, chips, font, gap, max_width)
+        if _cloud_fits(draw, lines, font, gap, max_width, max_height):
+            break
+    return font, gap, lines
+
+
+def _draw_cloud(
+    draw: Draw, lines, font: Font, gap: float, region_top: float, region_height: float
+) -> None:
+    step = _line_height(font)
+    band = region_height / len(lines)  # spread the lines across the whole region
+    sep_width = draw.textlength(CTA_TOPICS_SEP, font=font)
+    for index, line in enumerate(lines):
+        widths = [draw.textlength(chip[0], font=font) for chip in line]
+        total = sum(widths) + gap * (len(line) - 1)
+        x = (SIZE - total) / 2
+        y = region_top + band * (index + 0.5) - step / 2
+        for position, ((text, fill, is_topic), chip_width) in enumerate(
+            zip(line, widths)
+        ):
+            draw.text((x, y), text, font=font, fill=fill)
+            x += chip_width
+            if position + 1 < len(line):
+                if is_topic and line[position + 1][2]:  # middot between two topics
+                    draw.text(
+                        (x + (gap - sep_width) / 2, y),
+                        CTA_TOPICS_SEP,
+                        font=font,
+                        fill=CTA_TOPICS_COLOR,
+                    )
+                x += gap
+
+
 def render_cta(topics: list[str] | None = None) -> Image.Image:
-    """Call-to-action: a message, a flat blue journals button, then a topics cloud."""
+    """Centered logo, message and flat blue button, then a topics cloud filling the rest."""
     topics = topics or []
     image = Image.new("RGB", (SIZE, SIZE), YELLOW)
     draw = ImageDraw.Draw(image)
+    logo = load_logo(CTA_LOGO_WIDTH)
     text_font = load_font(CTA_TEXT_SIZE, weight=600)
     icon_font = load_icon_font(CTA_ICON_SIZE)
-    _, button_height = _button_size(draw, text_font, icon_font)
+    button_width, button_height = _button_size(draw, text_font, icon_font)
     message_font, message_lines = fit_plain(
         draw,
         CTA_MESSAGE,
         CONTENT,
         CTA_MESSAGE_BUDGET,
         CTA_MESSAGE_SIZE,
-        weight=CTA_MESSAGE_WEIGHT,
+        make_font=lambda size: load_font(size, CTA_MESSAGE_WEIGHT),
     )
-    message_height = _line_height(message_font) * len(message_lines)
-    cloud_budget = CONTENT - message_height - CTA_GAP - button_height - CTA_TOPICS_GAP
-    topic_words = [[(topic, False, False)] for topic in topics]
-    cloud_size, cloud_lines = fit_words(
-        draw, topic_words, CONTENT, max(cloud_budget, 0), max_size=CTA_TOPICS_SIZE
-    )
-    cloud_height = _line_height(load_font(cloud_size)) * len(cloud_lines)
-    topics_gap = CTA_TOPICS_GAP if cloud_lines else 0
-    total = message_height + CTA_GAP + button_height + topics_gap + cloud_height
-    top = (SIZE - total) / 2
-    top = _draw_left(draw, message_lines, message_font, DARK, top)
+    top = float(PADDING)
+    image.paste(logo, (int((SIZE - logo.width) / 2), int(top)), logo)
+    top += logo.height + CTA_GAP  # same gap as below the message
+    top = _draw_center(draw, message_lines, message_font, DARK, top)
     button_top = top + CTA_GAP
-    _draw_button(draw, PADDING, button_top, text_font, icon_font)
-    _draw_words(
-        draw,
-        cloud_lines,
-        cloud_size,
-        CTA_TOPICS_COLOR,
-        button_top + button_height + topics_gap,
-    )
+    _draw_button(draw, (SIZE - button_width) / 2, button_top, text_font, icon_font)
+    cloud_top = button_top + button_height + CTA_GAP
+    cloud_height = SIZE - PADDING - cloud_top
+    if topics and cloud_height > 0:
+        font, gap, lines = fit_cloud(draw, _cloud_chips(topics), CONTENT, cloud_height)
+        _draw_cloud(draw, lines, font, gap, cloud_top, cloud_height)
     return image
 
 

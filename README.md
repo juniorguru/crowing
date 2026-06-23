@@ -25,10 +25,10 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - The H1 text is monospace and smaller
 - The heading is larger and more important
 - The texts are aligned to left
-- Contains an [illustration of a chick](./src/jg/crowing/assets/chick-icon.svg) in bottom left corner
-- Contains an [arrow right](https://icons.getbootstrap.com/icons/arrow-right-circle-fill/) in bottom right corner
+- Contains an [illustration of a chick](./src/jg/crowing/assets/chick-icon.svg) in the bottom right corner
+- Contains an [arrow right](https://icons.getbootstrap.com/icons/arrow-right-circle-fill/) in the bottom left corner
 - The arrow fill is #1755d1 but the arrow itself is white
-- The arrow and chick have the same size, and are next to each other, with a bit of padding from the image border and each other
+- The arrow is one third smaller than the chick, both with a bit of padding from the image border
 - Padding consistent with all other Instagram post images
 - Beautiful typography and composition, the text, arrow, or illustration must not collide
 
@@ -45,15 +45,21 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 
 - Instagram-ready square images called XX.png, where XX is the last number
 - #fffa72 background
-- Text: "Více o tomto tématu najdeš v příručce"
+- Everything on the card is center-aligned (the default alignment for the call to action)
+- At the top, the [junior.guru logo](./src/jg/crowing/assets/junior-guru.min.png) above the text
+- Text: "Zajímá tě tohle téma? Otevři si příručku a čti dál!", smaller than the logo and topics
 - Under the text, flat blue button with white text
 - The button:
   - has a #1755d1 (Bootstrap primary blue) background
   - has only slightly rounded corners, _not_ a pill: the corner radius is about one tenth of the button's height (Bootstrap's `0.375rem`, i.e. roughly 6px on a 60px-tall button)
   - says "junior.guru/handbook"
   - has the white [Bootstrap "journals" icon](https://icons.getbootstrap.com/icons/journals/) right before the text
-- Under the button, there is a cloud of topics taken from the page's ToC, each topic separated by whitespace, each topic displayed without wrapping
-- Topics text feels like watermark, with text color #e5df67
+  - is large and has margin equal to the card's padding above and below it
+- Under the button, a cloud built from the page's ToC: dark prefix "Co tam ještě najdeš?", then the topics, then dark suffix "ZDARMA!"
+- Each topic is displayed without wrapping; topics on the same line are separated by a middot (·) with spaces
+- The topics are dark gold #998c00 and bold so they stay readable on the light yellow, while the prefix and suffix are dark
+- The cloud stretches over the full width and fills the bottom remaining height, not a condensed left block
+- The whitespace between topics is proportionally larger than between words within a topic, so it reads as a teaser, not a blob
 - Padding consistent with all other Instagram post images
 
 ### LinkedIn: carousel

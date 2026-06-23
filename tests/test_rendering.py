@@ -79,17 +79,10 @@ def _boxes_overlap(a, b) -> bool:
     return ax0 < bx1 and bx0 < ax1 and ay0 < by1 and by0 < ay1
 
 
-def test_intro_has_chick_in_bottom_left(draw):
+def test_intro_has_chick_in_bottom_right(draw):
     x0, y0, x1, y1 = intro_layout(
         draw, "Git a GitHub", "Řešení problémů s Gitem"
     ).chick_box
-    assert x0 == PADDING and y1 == SIZE - PADDING and x1 < SIZE // 2 and y0 > SIZE // 2
-
-
-def test_intro_has_arrow_in_bottom_right(draw):
-    x0, y0, x1, y1 = intro_layout(
-        draw, "Git a GitHub", "Řešení problémů s Gitem"
-    ).arrow_box
     assert (
         x1 == SIZE - PADDING
         and y1 == SIZE - PADDING
@@ -98,17 +91,24 @@ def test_intro_has_arrow_in_bottom_right(draw):
     )
 
 
-def test_intro_arrow_and_chick_are_the_same_size(draw):
+def test_intro_has_arrow_in_bottom_left(draw):
+    x0, y0, x1, y1 = intro_layout(
+        draw, "Git a GitHub", "Řešení problémů s Gitem"
+    ).arrow_box
+    assert x0 == PADDING and y1 == SIZE - PADDING and x1 < SIZE // 2 and y0 > SIZE // 2
+
+
+def test_intro_arrow_is_one_third_smaller_than_chick(draw):
     layout = intro_layout(draw, "Git a GitHub", "Řešení problémů s Gitem")
     chick_height = layout.chick_box[3] - layout.chick_box[1]
     arrow_height = layout.arrow_box[3] - layout.arrow_box[1]
-    assert abs(chick_height - arrow_height) <= 2
+    assert arrow_height == pytest.approx(chick_height * 2 / 3, abs=4)
 
 
 def test_intro_arrow_is_blue_circle_with_white_arrow():
     image = render_intro("Git a GitHub", "Řešení problémů s Gitem")
     pixels = image.load()
-    region = [(x, y) for x in range(SIZE // 2, SIZE) for y in range(SIZE // 2, SIZE)]
+    region = [(x, y) for x in range(0, SIZE // 2) for y in range(SIZE // 2, SIZE)]
     has_blue = any(pixels[x, y] == hex_to_rgb(BLUE) for x, y in region)
     has_white = any(pixels[x, y] == hex_to_rgb(WHITE) for x, y in region)
     assert has_blue and has_white
@@ -195,7 +195,7 @@ def test_cta_topics_cloud_is_a_watermark_below_the_button():
     topics = ["Co je Git", "Ovládání Gitu", "Co je GitHub", "GitHub a pohovory"]
     image = render_cta(topics)
     pixels = image.load()
-    watermark = hex_to_rgb("#e5df67")
+    watermark = hex_to_rgb("#998c00")
     _, _, _, button_bottom = _button_bbox(image)
     assert any(
         pixels[x, y] == watermark
