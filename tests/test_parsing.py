@@ -33,12 +33,18 @@ def test_collects_paragraphs_notes_and_list_items(edge_html):
     assert [text_of(p) for p in paragraphs] == [
         "Plain paragraph one with a link, bold and italics.",
         "Plain paragraph two spread over several lines.",
+        "Inline git status code.",
         "Note paragraph kept as a regular paragraph.",
         "The list intro ends with a colon…",
         "First list item as a paragraph.",
         "Second list item as a paragraph.",
         "Subsection paragraph still belongs to the target section.",
     ]
+
+
+def test_preserves_inline_code_as_a_code_run(edge_html):
+    paragraph = parse_section(edge_html, "target").paragraphs[2]
+    assert Run("git status", code=True) in paragraph
 
 
 def test_colon_before_a_list_becomes_an_ellipsis(edge_html):

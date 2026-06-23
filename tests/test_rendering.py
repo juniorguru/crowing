@@ -7,7 +7,7 @@ from jg.crowing.rendering import (
     DARK,
     PADDING,
     READING_WPM,
-    REEL_CTA_HEIGHT,
+    REEL_CARD_HEIGHT,
     REEL_CTA_SECONDS,
     REEL_HEIGHT,
     REEL_HOOK_SECONDS,
@@ -151,8 +151,8 @@ def test_to_words_groups_styled_segments():
         ["there"],
     ]
     # the middle word mixes plain and bold segments
-    assert words[1] == [("wor", False, False), ("ld", True, False)]
-    assert words[2] == [("there", False, True)]
+    assert words[1] == [("wor", False, False, False), ("ld", True, False, False)]
+    assert words[2] == [("there", False, True, False)]
 
 
 def test_to_words_keeps_all_text_for_long_paragraph():
@@ -169,7 +169,9 @@ def test_glue_words_keeps_single_letter_word_with_next():
 
 def test_glue_words_preserves_styling_of_the_following_word():
     words = to_words([Run("a "), Run("Gitem", bold=True)])
-    assert glue_words(words) == [[("a ", False, False), ("Gitem", True, False)]]
+    assert glue_words(words) == [
+        [("a ", False, False, False), ("Gitem", True, False, False)]
+    ]
 
 
 @pytest.mark.parametrize(
@@ -267,6 +269,22 @@ def test_render_paragraph_with_markup_draws_dark_text():
     assert any(sum(c) < 200 for c in colors)  # dark glyph pixels present
 
 
+def test_render_paragraph_has_blue_wordmark_bottom_right():
+    image = render_paragraph([Run("Nějaký odstavec.")])
+    pixels = image.load()
+    region = [(x, y) for x in range(SIZE // 2, SIZE) for y in range(SIZE // 2, SIZE)]
+    assert any(pixels[x, y] == hex_to_rgb(BLUE) for x, y in region)
+
+
+def test_render_paragraph_renders_inline_code_in_blue():
+    image = render_paragraph([Run("git status", code=True), Run(" je příkaz.")])
+    pixels = image.load()
+    # the wordmark is on the right; blue in the left half must be the code run
+    assert any(
+        pixels[x, y] == hex_to_rgb(BLUE) for x in range(SIZE // 2) for y in range(SIZE)
+    )
+
+
 def test_render_section_counts_intro_paragraphs_and_cta():
     section = Section(
         title="T",
@@ -305,9 +323,9 @@ def test_render_reel_is_one_portrait_frame_per_slide():
 
 
 def test_render_cta_can_be_a_taller_two_by_three_card():
-    card = render_cta(["Co je Git"], height=REEL_CTA_HEIGHT, stretch=True)
-    assert card.size == (SIZE, REEL_CTA_HEIGHT)
-    assert REEL_CTA_HEIGHT * 2 == SIZE * 3  # 2:3 portrait
+    card = render_cta(["Co je Git"], height=REEL_CARD_HEIGHT, stretch=True)
+    assert card.size == (SIZE, REEL_CARD_HEIGHT)
+    assert REEL_CARD_HEIGHT * 2 == SIZE * 3  # 2:3 portrait
 
 
 def test_reading_seconds_scales_with_word_count():

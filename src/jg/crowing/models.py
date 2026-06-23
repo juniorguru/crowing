@@ -10,6 +10,7 @@ class Run:
     text: str
     bold: bool = False
     italic: bool = False
+    code: bool = False
 
 
 RichText = list[Run]

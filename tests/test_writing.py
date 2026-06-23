@@ -49,9 +49,9 @@ def test_write_reel_lasts_the_sum_of_its_durations(frames, tmp_path):
     assert duration == pytest.approx(3 + 4 + 4, abs=1)
 
 
-def test_write_reel_rejects_a_video_a_minute_or_longer(frames, tmp_path):
+def test_write_reel_rejects_a_too_long_video(frames, tmp_path):
     with pytest.raises(InvalidInputError):
-        write_reel(frames, tmp_path, [3, 30, 30], fps=5)  # 63s, over the limit
+        write_reel(frames, tmp_path, [10, 40, 45], fps=5)  # 95s, over the 90s limit
 
 
 def test_write_reel_frames_are_9_by_16(frames, tmp_path):

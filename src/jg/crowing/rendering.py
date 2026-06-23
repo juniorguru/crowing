@@ -41,6 +41,8 @@ CTA_TOPICS_WEIGHT = 400  # regular weight for the topics, not bold
 CTA_TOPICS_SEP = "·"  # middot between topics on the same line
 CTA_MESSAGE_BUDGET = round(CONTENT * 0.42)
 BUTTON_RADIUS_RATIO = 0.1  # only slightly rounded corners, not a pill
+WORDMARK = "JUNIOR.GURU"  # small blue monospace signature on paragraph slides
+WORDMARK_SIZE = 30
 
 # Inter and Liberation Mono are bundled under the SIL Open Font License 1.1
 # (see assets/Inter-LICENSE and assets/LiberationMono-LICENSE).
@@ -61,7 +63,7 @@ ARROW_GLYPH = "\uf133"  # Bootstrap Icons "arrow-right-circle-fill" (U+F133)
 ARROW_INSET_RATIO = 0.08  # shrink the white disc so the blue ring hides its edge
 ARROW_RATIO = 2 / 3  # arrow is one third smaller than the chick
 
-Segment = tuple[str, bool, bool]
+Segment = tuple[str, bool, bool, bool]  # text, bold, italic, code
 Word = list[Segment]
 Box = tuple[float, float, float, float]
 Font = ImageFont.FreeTypeFont
@@ -76,7 +78,9 @@ def load_font(size: int, weight: int = 400, italic: bool = False) -> Font:
     return font
 
 
-def _segment_font(size: int, bold: bool, italic: bool) -> Font:
+def _segment_font(size: int, bold: bool, italic: bool, code: bool = False) -> Font:
+    if code:
+        return load_mono_font(size)
     return load_font(size, 700 if bold else 400, italic)
 
 
@@ -327,7 +331,7 @@ def _split_run(run: Run, words: list[Word], current: Word) -> Word:
                 words.append(current)
                 current = []
         else:
-            current.append((part, run.bold, run.italic))
+            current.append((part, run.bold, run.italic, run.code))
     return current
 
 
@@ -347,17 +351,18 @@ def glue_words(words: list[Word]) -> list[Word]:
 
 
 def _word_length(word: Word) -> int:
-    return sum(len(text) for text, _, _ in word)
+    return sum(len(text) for text, *_ in word)
 
 
 def _with_trailing_space(word: Word) -> Word:
-    text, bold, italic = word[-1]
-    return word[:-1] + [(f"{text} ", bold, italic)]
+    text, bold, italic, code = word[-1]
+    return word[:-1] + [(f"{text} ", bold, italic, code)]
 
 
 def _word_width(draw: Draw, word: Word, size: int) -> float:
     return sum(
-        draw.textlength(text, font=_segment_font(size, b, i)) for text, b, i in word
+        draw.textlength(text, font=_segment_font(size, b, i, c))
+        for text, b, i, c in word
     )
 
 
@@ -418,20 +423,35 @@ def _draw_words(
     for index, line in enumerate(lines):
         x = float(PADDING)
         for word in line:
-            for text, bold, italic in word:
-                font = _segment_font(size, bold, italic)
-                draw.text((x, top + index * step), text, font=font, fill=fill)
+            for text, bold, italic, code in word:
+                font = _segment_font(size, bold, italic, code)
+                draw.text(
+                    (x, top + index * step),
+                    text,
+                    font=font,
+                    fill=BLUE if code else fill,
+                )
                 x += draw.textlength(text, font=font)
             x += space
 
 
-def render_paragraph(runs: RichText) -> Image.Image:
-    """A content slide: white background, left-aligned dark paragraph with markup."""
-    image = Image.new("RGB", (SIZE, SIZE), WHITE)
+def render_paragraph(
+    runs: RichText, height: int = SIZE, wordmark_size: int = WORDMARK_SIZE
+) -> Image.Image:
+    """A content slide: white background, left-aligned dark paragraph with markup.
+
+    ``height`` defaults to the square image; the reel passes the taller 2:3 height so
+    the JUNIOR.GURU signature sits at the bottom of the 2:3 canvas (and a bit larger).
+    """
+    image = Image.new("RGB", (SIZE, height), WHITE)
     draw = ImageDraw.Draw(image)
     size, lines = fit_words(draw, glue_words(to_words(runs)), CONTENT, CONTENT)
-    top = (SIZE - _line_height(load_font(size)) * len(lines)) / 2
+    top = (height - _line_height(load_font(size)) * len(lines)) / 2
     _draw_words(draw, lines, size, DARK, top)
+    font = load_mono_font(wordmark_size)
+    draw.text(
+        (SIZE - PADDING, height - PADDING), WORDMARK, font=font, fill=BLUE, anchor="rs"
+    )
     return image
 
 
@@ -709,15 +729,20 @@ REEL_FPS = 30  # Instagram Reels' native frame rate
 REEL_HOOK_SECONDS = 3  # the intro hook stays on screen this long
 REEL_CTA_SECONDS = 10  # the call to action stays a fixed time, regardless of text
 READING_WPM = 200  # reading speed used to time the paragraph slides
-REEL_MAX_SECONDS = 60  # a reel of a minute or longer is too long
-REEL_CTA_HEIGHT = round(SIZE * 3 / 2)  # the reel call to action is 2:3, not square
+REEL_MAX_SECONDS = 90  # a reel this long or longer is rejected
+REEL_WARN_SECONDS = 60  # past this the reel is getting long, warn the user
+REEL_CARD_HEIGHT = round(
+    SIZE * 3 / 2
+)  # reel paragraph and CTA cards are 2:3, not square
+REEL_WORDMARK_SIZE = 44  # the signature is larger on the reel's white slides
 # the topics block keeps the same side padding as the square Instagram images
 REEL_CTA_CLOUD_WIDTH = CONTENT
 REEL_CTA_LOGO_WIDTH = round(SIZE * 0.62)  # bigger logo on the reel card
 REEL_CTA_MESSAGE_SIZE = 64  # bigger message on the reel card
 REEL_CTA_TOPICS_SIZE = 44  # cap for the reel topics, a touch smaller than before
-# Royalty-free background track, trimmed to a minute and stored as AAC (the codec
-# the reel uses), so it muxes in by a plain stream copy; see assets/ for the licence.
+# Royalty-free background track, stored as low-bitrate mono AAC (the codec the reel
+# uses) so it muxes in by a plain stream copy; longer than any reel, so -shortest
+# trims it to the video. See assets/ for the licence.
 REEL_MUSIC = str(_ASSETS / "slideshow-moire-main-version-02-01-15390.m4a")
 
 
@@ -735,10 +760,15 @@ def render_reel(section: Section) -> list[Image.Image]:
     """Render the carousel as 9:16 reel frames; the call to action is a taller 2:3 card."""
     slides = [
         render_intro(section.title, section.heading),
-        *(render_paragraph(paragraph) for paragraph in section.paragraphs),
+        *(
+            render_paragraph(
+                paragraph, height=REEL_CARD_HEIGHT, wordmark_size=REEL_WORDMARK_SIZE
+            )
+            for paragraph in section.paragraphs
+        ),
         render_cta(
             section.topics,
-            height=REEL_CTA_HEIGHT,
+            height=REEL_CARD_HEIGHT,
             logo_width=REEL_CTA_LOGO_WIDTH,
             message_size=REEL_CTA_MESSAGE_SIZE,
             topics_size=REEL_CTA_TOPICS_SIZE,

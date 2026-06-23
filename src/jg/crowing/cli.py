@@ -10,6 +10,7 @@ from jg.crowing.fetching import fetch_html
 from jg.crowing.parsing import parse_section
 from jg.crowing.rendering import (
     REEL_MAX_SECONDS,
+    REEL_WARN_SECONDS,
     reel_durations,
     render_reel,
     render_section,
@@ -47,6 +48,8 @@ async def _run(url: str, output_dir: Path) -> Path:
             f"The reel would be {round(total)}s long; keep it under {REEL_MAX_SECONDS}s "
             "by choosing a section with fewer or shorter paragraphs"
         )
+    if total >= REEL_WARN_SECONDS:
+        click.echo(f"Warning: the reel is {round(total)}s long, getting long", err=True)
     images = render_section(section)
     created = write_images(images, output_dir, handbook_url)
     write_carousel(images, created)

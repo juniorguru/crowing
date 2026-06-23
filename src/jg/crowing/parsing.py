@@ -11,8 +11,9 @@ from jg.crowing.models import RichText, Run, Section
 HEADINGS = ("h1", "h2", "h3", "h4", "h5", "h6")
 BOLD_TAGS = {"b", "strong"}
 ITALIC_TAGS = {"i", "em"}
+CODE_TAGS = {"code", "tt", "kbd", "samp"}
 
-StyledChar = tuple[str, bool, bool]
+StyledChar = tuple[str, bool, bool, bool]
 
 
 def parse_section(html: str, anchor: str) -> Section:
@@ -77,22 +78,29 @@ def _colon_to_ellipsis(runs: RichText) -> RichText:
 
 def _runs(element: Tag) -> RichText:
     chars: list[StyledChar] = []
-    _collect(element, bold=False, italic=False, in_link=False, out=chars)
+    _collect(element, bold=False, italic=False, code=False, in_link=False, out=chars)
     return _group(_collapse(chars))
 
 
 def _collect(
-    node: Tag, *, bold: bool, italic: bool, in_link: bool, out: list[StyledChar]
+    node: Tag,
+    *,
+    bold: bool,
+    italic: bool,
+    code: bool,
+    in_link: bool,
+    out: list[StyledChar],
 ) -> None:
     for child in node.children:
         if isinstance(child, NavigableString):
-            out.extend((character, bold, italic) for character in str(child))
+            out.extend((character, bold, italic, code) for character in str(child))
         elif isinstance(child, Tag):
             linked = in_link or child.name == "a"
             _collect(
                 child,
                 bold=not linked and (bold or child.name in BOLD_TAGS),
                 italic=not linked and (italic or child.name in ITALIC_TAGS),
+                code=code or child.name in CODE_TAGS,
                 in_link=linked,
                 out=out,
             )
@@ -101,13 +109,13 @@ def _collect(
 def _collapse(chars: list[StyledChar]) -> list[StyledChar]:
     out: list[StyledChar] = []
     after_space = True
-    for character, bold, italic in chars:
+    for character, bold, italic, code in chars:
         if character.isspace():
             if not after_space:
-                out.append((" ", bold, italic))
+                out.append((" ", bold, italic, code))
             after_space = True
         else:
-            out.append((character, bold, italic))
+            out.append((character, bold, italic, code))
             after_space = False
     while out and out[-1][0] == " ":
         out.pop()
@@ -116,12 +124,12 @@ def _collapse(chars: list[StyledChar]) -> list[StyledChar]:
 
 def _group(chars: list[StyledChar]) -> RichText:
     runs: list[list] = []
-    for character, bold, italic in chars:
-        if runs and runs[-1][1] == bold and runs[-1][2] == italic:
+    for character, bold, italic, code in chars:
+        if runs and runs[-1][1:] == [bold, italic, code]:
             runs[-1][0] += character
         else:
-            runs.append([character, bold, italic])
-    return [Run(text, bold, italic) for text, bold, italic in runs]
+            runs.append([character, bold, italic, code])
+    return [Run(text, bold, italic, code) for text, bold, italic, code in runs]
 
 
 def _plain_text(element: Tag | None) -> str:

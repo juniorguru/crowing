@@ -40,6 +40,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - White background
 - The text is aligned to left
 - The size of the text is adjusted so that it's as large as possible, but it must fit the image, including some padding.
+- Each image has #1755d1 monospace text JUNIOR.GURU in right bottom corner, small and thin, but readable
 - Padding consistent with all other Instagram post images
 
 ### Instagram post: Call to action
@@ -82,10 +83,11 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
   - It is then also centered on the 9:16 canvas, padded above and below
   - The logo and the text above the button are significantly larger
   - The topics block keeps the same side padding as the square Instagram images (no extra top/bottom padding beyond the gaps)
+- White slides are the same except that the JUNIOR.GURU text is larger and it's positioned right bottom related to an imaginary 2:3 canvas, not to an imaginary 1:1 square canvas
 - H.264 video in an MP4 container, sRGB, 30 fps
 - The first image (the hook) is on screen for 3s, each paragraph slide for as many seconds as needed for reading the text on screen with speed of reading 200wpm, and the call to action for a fixed 10s
 - Plain cut transitions
-- If the whole video would be a minute or longer, the tool raises an invalid input error, because that is too long for a reel
+- If the whole video would be 90s or longer, the tool raises an invalid input error, because that is too long for a reel; if it is 60s or longer (but under 90s), it still renders but prints a warning that the video is getting long
 - A royalty-free background music track [`slideshow-moire-main-version-02-01-15390.m4a`](./src/jg/crowing/assets/slideshow-moire-main-version-02-01-15390.m4a) plays under the slides, encoded as AAC and cut to the length of the video
 
 ### Typography
@@ -102,7 +104,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - If page is not within /handbook/, it raises not implemented
 - If link doesn't include anchor, it's invalid input error
 - If target page doesn't contain H1, ToC, or the anchor, it's invalid input error
-- If the reel would be a minute or longer (too many paragraphs), it's invalid input error
+- If the reel would be 90s or longer (too many paragraphs), it's invalid input error
 - Uses suitable [click exceptions](https://click.palletsprojects.com/en/stable/api/#exceptions) for the input errors
 
 ## Installation and contributing
