@@ -52,6 +52,7 @@ The project aims to be as consistent as possible with other [@juniorguru](https:
 - Albeit open source, the project isn't published to PyPI (yet), it's an internal tool used by just its author and it's okay if it needs to be git cloned and installed to be used
 - When it comes to architecture, aim to achieve the [Clean Architecture](https://www.youtube.com/watch?v=DJtef410XaM) ([textual slides](https://rhodesmill.org/brandon/slides/2014-07-pyohio/clean-architecture/)) with "imperative shell" using a "functional core"
 - Be `async` by default
+- Use Python type hints everywhere
 - Use `httpx` for HTTP requests, `click` for the specification of CLI
 
 ### Testing
