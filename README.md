@@ -24,9 +24,12 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - The H1 text is monospace and smaller
 - The heading is larger and more important
 - The texts are aligned to left
-- The image contains an illustration of a chick in bottom right corner, with a bit of padding from the image border
+- Contains an [illustration of a chick](./src/jg/crowing/assets/chick-icon.svg) in bottom left corner
+- Contains an [arrow right](https://icons.getbootstrap.com/icons/arrow-right-circle-fill/) in bottom right corner
+- The arrow fill is #1755d1 but the arrow itself is white
+- The arrow and chick are next to each other, with a bit of padding from the image border and each other
 - Padding consistent with all other Instagram post images
-- Beautiful typography and composition. The text and illustration must not collide.
+- Beautiful typography and composition, the text, arrow, or illustration must not collide
 
 ### Instagram post: Paragraph images
 

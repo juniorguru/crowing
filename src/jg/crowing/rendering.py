@@ -49,6 +49,9 @@ _MONO_PATH = str(_ASSETS / "LiberationMono.ttf")
 _CHICK_PATH = str(_ASSETS / "chick.png")
 _OPTICAL_SIZE_MAX = 32
 CHICK_WIDTH = round(SIZE * 0.32)
+ARROW_GLYPH = "\uf133"  # Bootstrap Icons "arrow-right-circle-fill" (U+F133)
+ARROW_SIZE = round(SIZE * 0.13)
+ARROW_INSET_RATIO = 0.08  # shrink the white disc so the blue ring hides its edge
 
 Segment = tuple[str, bool, bool]
 Word = list[Segment]
@@ -87,6 +90,20 @@ def load_chick(width: int) -> Image.Image:
     chick = Image.open(_CHICK_PATH).convert("RGBA")
     height = round(width * chick.height / chick.width)
     return chick.resize((width, height))
+
+
+@lru_cache(maxsize=None)
+def load_arrow(size: int) -> Image.Image:
+    """Render the arrow-right-circle-fill icon as a blue disc with a white arrow."""
+    font = load_icon_font(size)
+    left, top, right, bottom = font.getbbox(ARROW_GLYPH)
+    width, height = right - left, bottom - top
+    tile = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(tile)
+    inset = round(width * ARROW_INSET_RATIO)
+    draw.ellipse((inset, inset, width - inset, height - inset), fill=WHITE)
+    draw.text((-left, -top), ARROW_GLYPH, font=font, fill=BLUE)
+    return tile
 
 
 def _line_height(font: Font) -> float:
@@ -188,19 +205,24 @@ class IntroLayout(NamedTuple):
     top: float
     chick: Image.Image
     chick_box: Box
+    arrow: Image.Image
+    arrow_box: Box
     text_box: Box
 
 
 def intro_layout(draw: Draw, title: str, heading: str) -> IntroLayout:
-    """Lay out the intro text above a bottom-right chick so the two never collide."""
+    """Lay out the intro text above a bottom-left chick and bottom-right arrow."""
     chick = load_chick(CHICK_WIDTH)
-    chick_box = (
-        SIZE - PADDING - chick.width,
-        SIZE - PADDING - chick.height,
+    arrow = load_arrow(ARROW_SIZE)
+    bottom = SIZE - PADDING
+    chick_box = (PADDING, bottom - chick.height, PADDING + chick.width, bottom)
+    arrow_box = (
+        SIZE - PADDING - arrow.width,
+        bottom - arrow.height,
         SIZE - PADDING,
-        SIZE - PADDING,
+        bottom,
     )
-    text_height_budget = chick_box[1] - PADDING
+    text_height_budget = min(chick_box[1], arrow_box[1]) - PADDING
     lines = fit_intro(draw, title, heading, max_height=text_height_budget)
     title_lines, heading_lines, title_font, heading_font = lines
     text_height = _intro_height(title_lines, title_font, heading_lines, heading_font)
@@ -217,6 +239,8 @@ def intro_layout(draw: Draw, title: str, heading: str) -> IntroLayout:
         top,
         chick,
         chick_box,
+        arrow,
+        arrow_box,
         text_box,
     )
 
@@ -230,14 +254,19 @@ def _intro_width(
 
 
 def render_intro(title: str, heading: str) -> Image.Image:
-    """Intro slide: small monospace title, larger heading, chick in the bottom-right."""
+    """Intro slide: monospace title, heading, chick bottom-left, arrow bottom-right."""
     image = Image.new("RGB", (SIZE, SIZE), YELLOW)
     draw = ImageDraw.Draw(image)
     layout = intro_layout(draw, title, heading)
     top = _draw_left(draw, layout.title_lines, layout.title_font, DARK, layout.top)
     top += _line_height(layout.heading_font) * INTRO_GAP_RATIO
     _draw_left(draw, layout.heading_lines, layout.heading_font, DARK, top)
-    image.paste(layout.chick, (layout.chick_box[0], layout.chick_box[1]), layout.chick)
+    image.paste(
+        layout.chick, (int(layout.chick_box[0]), int(layout.chick_box[1])), layout.chick
+    )
+    image.paste(
+        layout.arrow, (int(layout.arrow_box[0]), int(layout.arrow_box[1])), layout.arrow
+    )
     return image
 
 

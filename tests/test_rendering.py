@@ -73,9 +73,23 @@ def test_intro_heading_does_not_orphan_single_letter_word(draw):
     assert all(line.split()[-1] != "s" for line in heading_lines)
 
 
-def test_intro_has_chick_in_bottom_right(draw):
-    layout = intro_layout(draw, "Git a GitHub", "Řešení problémů s Gitem")
-    x0, y0, x1, y1 = layout.chick_box
+def _boxes_overlap(a, b) -> bool:
+    ax0, ay0, ax1, ay1 = a
+    bx0, by0, bx1, by1 = b
+    return ax0 < bx1 and bx0 < ax1 and ay0 < by1 and by0 < ay1
+
+
+def test_intro_has_chick_in_bottom_left(draw):
+    x0, y0, x1, y1 = intro_layout(
+        draw, "Git a GitHub", "Řešení problémů s Gitem"
+    ).chick_box
+    assert x0 == PADDING and y1 == SIZE - PADDING and x1 < SIZE // 2 and y0 > SIZE // 2
+
+
+def test_intro_has_arrow_in_bottom_right(draw):
+    x0, y0, x1, y1 = intro_layout(
+        draw, "Git a GitHub", "Řešení problémů s Gitem"
+    ).arrow_box
     assert (
         x1 == SIZE - PADDING
         and y1 == SIZE - PADDING
@@ -84,12 +98,23 @@ def test_intro_has_chick_in_bottom_right(draw):
     )
 
 
+def test_intro_arrow_is_blue_circle_with_white_arrow():
+    image = render_intro("Git a GitHub", "Řešení problémů s Gitem")
+    pixels = image.load()
+    region = [(x, y) for x in range(SIZE // 2, SIZE) for y in range(SIZE // 2, SIZE)]
+    has_blue = any(pixels[x, y] == hex_to_rgb(BLUE) for x, y in region)
+    has_white = any(pixels[x, y] == hex_to_rgb(WHITE) for x, y in region)
+    assert has_blue and has_white
+
+
 def test_intro_text_does_not_collide_with_chick(draw):
     layout = intro_layout(draw, "Git a GitHub", "Řešení problémů s Gitem")
-    tx0, ty0, tx1, ty1 = layout.text_box
-    cx0, cy0, cx1, cy1 = layout.chick_box
-    overlaps = tx0 < cx1 and cx0 < tx1 and ty0 < cy1 and cy0 < ty1
-    assert not overlaps
+    assert not _boxes_overlap(layout.text_box, layout.chick_box)
+
+
+def test_intro_text_does_not_collide_with_arrow(draw):
+    layout = intro_layout(draw, "Git a GitHub", "Řešení problémů s Gitem")
+    assert not _boxes_overlap(layout.text_box, layout.arrow_box)
 
 
 def test_intro_text_is_left_aligned():
