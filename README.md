@@ -117,6 +117,7 @@ The project aims to be as consistent as possible with other [@juniorguru](https:
 - Use `@pytest.mark.parametrize` if suitable
 - When it comes to testing, aim to have many fast unit tests for "functional core" and "few integration tests" for "imperative shell"
 - Aim at having a single assert per descriptive test function, unless impractical (e.g. when comparing small bits of complex structures)
+- Unit, integration, and e2e tests must never depend on network, time, etc. smoke e2e tests can access network, but must not be ran by default when someone runs just `pytest`, those must be ran explicitly on CI or as part of more thorough verification pipeline
 
 ### Packaging, dependencies, tools
 
@@ -128,4 +129,4 @@ The project aims to be as consistent as possible with other [@juniorguru](https:
 - When running `pytest`, ruff check runs automatically as well through `pytest-ruff` and cyclomatic complexity is also checked
 - walrus operators are great and pyupgrade is one of the tools we regularly run to keep the code nice and modern
 - The `FUNDING.yml` and `dependabot.yml` files inside `.github` are as consistent as possible with other @juniorguru projects
-- There is a GitHub Actions workflow which runs all the tests and checks, including a smoke test which installs the tool and tries if running it with `--help` works or crashes
+- There is a GitHub Actions workflow which runs all the tests and checks, including an end-to-end smoke test (`tests/smoke.py`, also runnable via `make smoke`) which installs the tool with runtime dependencies only and runs the documented example, checking `--help`, that it doesn't crash, and that it produces the expected assets as documented

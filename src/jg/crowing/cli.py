@@ -10,7 +10,7 @@ from jg.crowing.fetching import fetch_html
 from jg.crowing.parsing import parse_section
 from jg.crowing.rendering import render_section
 from jg.crowing.urls import parse_url
-from jg.crowing.writing import write_images
+from jg.crowing.writing import write_carousel, write_images
 
 
 @click.command()
@@ -28,7 +28,7 @@ def main(url: str, output_dir: Path) -> None:
         output = asyncio.run(_run(url, output_dir))
     except InvalidInputError as error:
         raise click.BadParameter(str(error), param_hint="URL") from error
-    click.echo(f"Created images in {output}")
+    click.echo(f"Created images and carousel.pdf in {output}")
 
 
 async def _run(url: str, output_dir: Path) -> Path:
@@ -36,4 +36,6 @@ async def _run(url: str, output_dir: Path) -> Path:
     html = await fetch_html(url)
     section = parse_section(html, handbook_url.anchor)
     images = render_section(section)
-    return write_images(images, output_dir, handbook_url)
+    created = write_images(images, output_dir, handbook_url)
+    write_carousel(images, created)
+    return created

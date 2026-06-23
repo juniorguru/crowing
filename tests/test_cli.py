@@ -31,6 +31,19 @@ def test_cli_creates_nested_image_files(fake_fetch):
         assert files == ["01.png", "02.png", "03.png", "04.png"]
 
 
+def test_cli_creates_carousel_pdf_next_to_images(fake_fetch):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli.main,
+            ["https://junior.guru/handbook/git/#reseni-problemu-s-gitem"],
+        )
+        assert result.exit_code == 0, result.output
+        assert (
+            Path("handbook-git") / "reseni-problemu-s-gitem" / "carousel.pdf"
+        ).exists()
+
+
 def test_cli_respects_output_dir(fake_fetch):
     runner = CliRunner()
     with runner.isolated_filesystem():

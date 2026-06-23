@@ -70,6 +70,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "pypdf" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-ruff" },
@@ -86,6 +87,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "pypdf", specifier = ">=5.1" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-asyncio", specifier = ">=0.25" },
     { name = "pytest-ruff", specifier = ">=0.5" },
@@ -230,6 +232,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c3/b2/bc9c9196916376152d655522fdcebac55e66de6603a76a02bca1b6414f6c/pygments-2.20.0.tar.gz", hash = "sha256:6757cd03768053ff99f3039c1a36d6c0aa0b263438fcab17520b30a303a82b5f", size = 4955991, upload-time = "2026-03-29T13:29:33.898Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/7e/a72dd26f3b0f4f2bf1dd8923c85f7ceb43172af56d63c7383eb62b332364/pygments-2.20.0-py3-none-any.whl", hash = "sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176", size = 1231151, upload-time = "2026-03-29T13:29:30.038Z" },
+]
+
+[[package]]
+name = "pypdf"
+version = "6.14.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/91/4c422e3b1a6f9fabbd7989cc4f8a84df5898ceac0862d4c9cfc1ab26c200/pypdf-6.14.1.tar.gz", hash = "sha256:03c76aa9cc6dfda76d33d8e19f17d271efb6a7606913a72cf973a649db9743a3", size = 6490965, upload-time = "2026-06-23T11:52:03.752Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/df/b4/eedf61e574ef0034177d7861cd701b321c392ab36e1670f2aadbb60da7fc/pypdf-6.14.1-py3-none-any.whl", hash = "sha256:f12434c49fd4c771b92ea2cc176df16d6c5488fc123d4ab4ee3a344e151f685c", size = 349494, upload-time = "2026-06-23T11:52:01.661Z" },
 ]
 
 [[package]]

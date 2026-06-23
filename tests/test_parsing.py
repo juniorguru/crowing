@@ -78,8 +78,14 @@ def test_collects_topics_from_table_of_contents(git_html):
     ]
 
 
-def test_topics_are_empty_without_a_table_of_contents(edge_html):
-    assert parse_section(edge_html, "target").topics == []
+def test_missing_h1_raises_invalid_input():
+    with pytest.raises(InvalidInputError):
+        parse_section(load_fixture("section-no-h1.html"), "target")
+
+
+def test_missing_table_of_contents_raises_invalid_input():
+    with pytest.raises(InvalidInputError):
+        parse_section(load_fixture("section-no-toc.html"), "target")
 
 
 def test_real_handbook_page(git_html):

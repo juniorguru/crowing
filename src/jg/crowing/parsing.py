@@ -20,22 +20,19 @@ def parse_section(html: str, anchor: str) -> Section:
     soup = BeautifulSoup(html, "html.parser")
     for link in soup.select("a.headerlink"):
         link.decompose()
+    if not isinstance(h1 := soup.find("h1"), Tag):
+        raise InvalidInputError("Page contains no H1")
+    if (toc := soup.select_one(".document-toc")) is None:
+        raise InvalidInputError("Page contains no table of contents")
     heading = soup.find(id=anchor)
     if not isinstance(heading, Tag) or heading.name not in HEADINGS:
         raise InvalidInputError(f"Anchor #{anchor} not found")
     return Section(
-        title=_plain_text(soup.find("h1")),
+        title=_plain_text(h1),
         heading=_plain_text(heading),
         paragraphs=list(_iter_paragraphs(heading)),
-        topics=_topics(soup),
+        topics=[_plain_text(link) for link in toc.select("a")],
     )
-
-
-def _topics(soup: BeautifulSoup) -> list[str]:
-    toc = soup.select_one(".document-toc")
-    if toc is None:
-        return []
-    return [_plain_text(link) for link in toc.select("a")]
 
 
 def _iter_paragraphs(heading: Tag):

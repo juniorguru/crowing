@@ -22,9 +22,10 @@ assets:
 build:
 	uv build
 
-# Quick smoke test: does the CLI start at all?
+# End-to-end smoke test: runs the documented example with runtime deps only
+# (no dev group), checking --help, the generated images and the PDF.
 smoke:
-	uv run crowing --help
+	uv run --no-dev python tests/smoke.py
 
 # End-to-end demo against the live site, for eyeballing the images.
 demo:
