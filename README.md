@@ -17,7 +17,9 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Inside the subsubdirectory creates a set of Instagram-ready square images
 - The images are sorted by filename: 01.png, 02.png, etc.
 - First image is intro. It has #fffa72 background and #343434 text. It contains the title of the page, colon, and the heading. In this case "Git a GitHub: Řešení problémů s Gitem". The text is nicely wrapped and centered to the middle.
+- On the image, the H1 text is smaller and the heading is larger and more important. There is always new line break after the H1 text.
 - Then there is one image for each paragraph. It has white background and #343434 text. The text is aligned to left for easier reading. The size of the text is adjusted so that it's as large as possible, but it must fit the image, including some padding. The padding is consistent across all images.
+- The text in the images renders links as plain text, but preserves other inline markup, such as bold, italics, etc.
 - Last image is call to action. It has #fffa72 background and #0f62fe "flat button", i.e. rectangle with round corners, and with white text. It says "junior.guru/handbook"
 - Font is Inter, the same as in [junior.guru core repository's package.json](https://github.com/juniorguru/junior.guru/blob/main/package.json)
 
@@ -64,6 +66,7 @@ The project aims to be as consistent as possible with other [@juniorguru](https:
 - Aim for low cyclomatic complexity
 - Use `@pytest.mark.parametrize` if suitable
 - When it comes to testing, aim to have many fast unit tests for "functional core" and "few integration tests" for "imperative shell"
+- Aim at having a single assert per descriptive test function, unless impractical (e.g. when comparing small bits of complex structures)
 
 ### Packaging, dependencies, tools
 
