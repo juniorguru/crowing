@@ -72,8 +72,8 @@ def load_mono_font(size: int) -> Font:
     return ImageFont.truetype(_MONO_PATH, size)
 
 
-def _line_height(size: int) -> float:
-    ascent, descent = load_font(size).getmetrics()
+def _line_height(font: Font) -> float:
+    ascent, descent = font.getmetrics()
     return (ascent + descent) * LINE_SPACING
 
 
@@ -103,13 +103,13 @@ def _block_fits(draw: Draw, lines: list[str], font: Font, max_width: int) -> boo
 def fit_intro(
     draw: Draw, title: str, heading: str, max_size: int = 130, min_size: int = 20
 ) -> tuple[list[str], list[str], Font, Font]:
-    """Pick the largest heading size (title scaled down) at which the intro fits."""
-    title_font = load_font(min_size, 400)
+    """Pick the largest heading size (monospace title scaled down) at which the intro fits."""
+    title_font = load_mono_font(min_size)
     heading_font = load_font(min_size, 700)
     title_lines = wrap_text(draw, title, title_font, CONTENT)
     heading_lines = wrap_text(draw, heading, heading_font, CONTENT)
     for size in range(max_size, min_size, -2):
-        title_font = load_font(int(size * INTRO_TITLE_RATIO), 400)
+        title_font = load_mono_font(int(size * INTRO_TITLE_RATIO))
         heading_font = load_font(size, 700)
         title_lines = wrap_text(draw, title, title_font, CONTENT)
         heading_lines = wrap_text(draw, heading, heading_font, CONTENT)
@@ -125,34 +125,33 @@ def fit_intro(
 def _intro_height(
     title_lines, title_font: Font, heading_lines, heading_font: Font
 ) -> float:
-    title_block = _line_height(title_font.size) * len(title_lines)
-    heading_block = _line_height(heading_font.size) * len(heading_lines)
-    gap = _line_height(heading_font.size) * INTRO_GAP_RATIO
+    title_block = _line_height(title_font) * len(title_lines)
+    heading_block = _line_height(heading_font) * len(heading_lines)
+    gap = _line_height(heading_font) * INTRO_GAP_RATIO
     return title_block + gap + heading_block
 
 
-def _draw_centered(
+def _draw_left(
     draw: Draw, lines: list[str], font: Font, fill: str, top: float
 ) -> float:
-    step = _line_height(font.size)
+    step = _line_height(font)
     for index, line in enumerate(lines):
-        x = (SIZE - draw.textlength(line, font=font)) / 2
-        draw.text((x, top + index * step), line, font=font, fill=fill)
+        draw.text((PADDING, top + index * step), line, font=font, fill=fill)
     return top + step * len(lines)
 
 
 def render_intro(title: str, heading: str) -> Image.Image:
-    """The opening slide: small title, a line break, then the larger heading."""
+    """The opening slide: a small monospace title, a line break, then the larger heading."""
     image = Image.new("RGB", (SIZE, SIZE), YELLOW)
     draw = ImageDraw.Draw(image)
     title_lines, heading_lines, title_font, heading_font = fit_intro(
-        draw, f"{title}:", heading
+        draw, title, heading
     )
     height = _intro_height(title_lines, title_font, heading_lines, heading_font)
     top = (SIZE - height) / 2
-    top = _draw_centered(draw, title_lines, title_font, DARK, top)
-    top += _line_height(heading_font.size) * INTRO_GAP_RATIO
-    _draw_centered(draw, heading_lines, heading_font, DARK, top)
+    top = _draw_left(draw, title_lines, title_font, DARK, top)
+    top += _line_height(heading_font) * INTRO_GAP_RATIO
+    _draw_left(draw, heading_lines, heading_font, DARK, top)
     return image
 
 
@@ -217,7 +216,7 @@ def _words_fit(draw: Draw, lines, size: int, max_width: int, max_height: int) ->
         )
         if width > max_width:
             return False
-    return _line_height(size) * len(lines) <= max_height
+    return _line_height(load_font(size)) * len(lines) <= max_height
 
 
 def fit_words(
@@ -240,7 +239,7 @@ def fit_words(
 
 def _draw_words(draw: Draw, lines: list[list[Word]], size: int, fill: str) -> None:
     space = draw.textlength(" ", font=load_font(size))
-    step = _line_height(size)
+    step = _line_height(load_font(size))
     top = (SIZE - step * len(lines)) / 2
     for index, line in enumerate(lines):
         x = float(PADDING)

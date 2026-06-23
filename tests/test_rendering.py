@@ -4,6 +4,8 @@ from PIL import Image, ImageDraw
 from jg.crowing.models import Run, Section
 from jg.crowing.rendering import (
     BLUE,
+    DARK,
+    PADDING,
     SIZE,
     WHITE,
     YELLOW,
@@ -48,10 +50,28 @@ def test_load_mono_font_is_liberation_mono():
 
 
 def test_intro_heading_is_larger_than_title(draw):
-    title_lines, heading_lines, title_font, heading_font = fit_intro(
-        draw, "Git a GitHub:", "Řešení problémů s Gitem"
+    _, _, title_font, heading_font = fit_intro(
+        draw, "Git a GitHub", "Řešení problémů s Gitem"
     )
     assert heading_font.size > title_font.size
+
+
+def test_intro_title_is_monospace(draw):
+    _, _, title_font, _ = fit_intro(draw, "Git a GitHub", "Řešení problémů s Gitem")
+    assert title_font.getname()[0] == "Liberation Mono"
+
+
+def test_intro_heading_uses_inter(draw):
+    _, _, _, heading_font = fit_intro(draw, "Git a GitHub", "Řešení problémů s Gitem")
+    assert heading_font.getname()[0] == "Inter"
+
+
+def test_intro_text_is_left_aligned():
+    image = render_intro("Git a GitHub", "Řešení problémů s Gitem")
+    pixels = image.load()
+    dark = hex_to_rgb(DARK)
+    left_edge = min(x for x in range(SIZE) for y in range(SIZE) if pixels[x, y] == dark)
+    assert left_edge < PADDING + 30
 
 
 def test_to_words_groups_styled_segments():
