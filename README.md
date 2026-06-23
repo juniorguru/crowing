@@ -14,18 +14,49 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Reads all plain paragraphs within the section
 - Skips notes or cards, embedded videos, etc., takes just paragraphs
 - In current working directory (or whatever path user passed in CLI option) creates new subdirectory `handbook-git` and inside another one, `reseni-problemu-s-gitem`
-- Inside the subsubdirectory creates a set of Instagram-ready square images
-- The images are sorted by filename: 01.png, 02.png, etc.
-- First image is intro. It has #fffa72 background and #343434 text. It contains the title of the page, new line, and the heading. In this case "Git a GitHub" and "Řešení problémů s Gitem". The H1 text is monospace and smaller. The heading is larger and more important. The texts are aligned to left. The image contains an illustration of a chick in bottom right corner, with a bit of padding from the image border. Beautiful typography and composition. The text and illustration must not collide.
-- Then there is one image for each paragraph. It has white background and #343434 text. The text is aligned to left. The size of the text is adjusted so that it's as large as possible, but it must fit the image, including some padding. The padding is consistent across all images.
-- The text in the images renders links as plain text, but preserves other inline markup, such as bold, italics, etc.
-- The text never breaks after a single-letter word. E.g. "Řešení problémů s Gitem" must never break between "s" and "Gitem"
-- Last image is call to action. It has #fffa72 background and a flat button with white text. The button:
+- Inside the subsubdirectory creates a set of assets
+
+### Instagram post: Intro image
+
+- Instagram-ready square image called 01.png
+- #fffa72 background
+- Contains the title of the page, new line, and the heading. E.g. "Git a GitHub" and "Řešení problémů s Gitem".
+- The H1 text is monospace and smaller
+- The heading is larger and more important
+- The texts are aligned to left
+- The image contains an illustration of a chick in bottom right corner, with a bit of padding from the image border
+- Padding consistent with all other Instagram post images
+- Beautiful typography and composition. The text and illustration must not collide.
+
+### Instagram post: Paragraph images
+
+- Instagram-ready square images called 02.png, 03.png, etc.
+- One image for each paragraph
+- White background
+- The text is aligned to left
+- The size of the text is adjusted so that it's as large as possible, but it must fit the image, including some padding.
+- Padding consistent with all other Instagram post images
+
+### Instagram post: Call to action
+
+- Instagram-ready square images called XX.png, where XX is the last number
+- #fffa72 background
+- Text: "Více o tomto tématu najdeš v příručce"
+- Under the text, flat blue button with white text
+- The button:
   - has a #1755d1 (Bootstrap primary blue) background
   - has only slightly rounded corners, _not_ a pill: the corner radius is about one tenth of the button's height (Bootstrap's `0.375rem`, i.e. roughly 6px on a 60px-tall button)
   - says "junior.guru/handbook"
   - has the white [Bootstrap "journals" icon](https://icons.getbootstrap.com/icons/journals/) right before the text
-- We use "Inter" font for text, and for monospace text (if any) we use "Liberation Mono".
+- Padding consistent with all other Instagram post images
+
+### Typography
+
+- If text is on yellow or white, it's #343434
+- If text is on blue, it's white
+- The text in the images renders links as plain text, but preserves other inline markup, such as bold, italics, etc.
+- The text never breaks after a single-letter word. E.g. "Řešení problémů s Gitem" must never break between "s" and "Gitem"
+- We use "Inter" font for text, and for monospace text (if any) we use "Liberation Mono"
 
 ### Errors
 
