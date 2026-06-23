@@ -56,6 +56,7 @@ The project aims to be as consistent as possible with other [@juniorguru](https:
 
 ### Testing
 
+- Always develop by red green TDD
 - Aim for low cyclomatic complexity
 - Use `@pytest.mark.parametrize` if suitable
 - When it comes to testing, aim to have many fast unit tests for "functional core" and "few integration tests" for "imperative shell"
