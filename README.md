@@ -74,12 +74,10 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 ### Reel
 
 - Takes the same slides as the carousel and glues them into a slideshow video, `reel.mp4`, next to the images
-- Vertical 9:16, 1080×1920 px, Instagram Reels' native size (also fine for YouTube Shorts and TikTok)
+- Vertical 9:16, 1080×1920px
 - Each square slide is centered on the 9:16 canvas, padded above and below with that slide's own background colour, so it stays seamless and full-bleed
-- All content therefore lives inside the central 1080×1080 square, the safe zone that survives Instagram's feed (4:5) and profile-grid (1:1) crops; nothing important hides behind the top profile badge, the right-edge action icons, or the bottom caption/controls
-- H.264 video in an MP4 container, sRGB, 30 fps, the format and frame rate Reels expect
+- H.264 video in an MP4 container, sRGB, 30 fps
 - The first image (the hook) is on screen for 2s, every other slide for 5s, with plain cut transitions
-- Silent by design (no audio track), so it stays small (well under the practical ~50 MB limit) and the viewer can add their own music in the app
 
 ### Typography
 
