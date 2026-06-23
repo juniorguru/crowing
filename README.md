@@ -19,6 +19,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - First image is intro. It has #fffa72 background and #343434 text. It contains the title of the page, new line, and the heading. In this case "Git a GitHub" and "Řešení problémů s Gitem". The H1 text is monospace and smaller. The heading is larger and more important. The texts are aligned to left. Beautiful typography and composition.
 - Then there is one image for each paragraph. It has white background and #343434 text. The text is aligned to left. The size of the text is adjusted so that it's as large as possible, but it must fit the image, including some padding. The padding is consistent across all images.
 - The text in the images renders links as plain text, but preserves other inline markup, such as bold, italics, etc.
+- The text never breaks after a single-letter word. E.g. "Řešení problémů s Gitem" must never break between "s" and "Gitem"
 - Last image is call to action. It has #fffa72 background and a flat button with white text. The button:
   - has a #1755d1 (Bootstrap primary blue) background
   - has only slightly rounded corners, _not_ a pill: the corner radius is about one tenth of the button's height (Bootstrap's `0.375rem`, i.e. roughly 6px on a 60px-tall button)

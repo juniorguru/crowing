@@ -10,6 +10,7 @@ from jg.crowing.rendering import (
     WHITE,
     YELLOW,
     fit_intro,
+    glue_words,
     load_font,
     load_mono_font,
     render_cta,
@@ -66,6 +67,11 @@ def test_intro_heading_uses_inter(draw):
     assert heading_font.getname()[0] == "Inter"
 
 
+def test_intro_heading_does_not_orphan_single_letter_word(draw):
+    _, heading_lines, _, _ = fit_intro(draw, "Git a GitHub", "Řešení problémů s Gitem")
+    assert all(line.split()[-1] != "s" for line in heading_lines)
+
+
 def test_intro_text_is_left_aligned():
     image = render_intro("Git a GitHub", "Řešení problémů s Gitem")
     pixels = image.load()
@@ -91,6 +97,17 @@ def test_to_words_keeps_all_text_for_long_paragraph():
     runs = [Run("word " * 30)]
     words = to_words(runs)
     assert len(words) == 30
+
+
+def test_glue_words_keeps_single_letter_word_with_next():
+    words = to_words([Run("problémů s Gitem")])
+    units = ["".join(segment[0] for segment in unit) for unit in glue_words(words)]
+    assert "s Gitem" in units
+
+
+def test_glue_words_preserves_styling_of_the_following_word():
+    words = to_words([Run("a "), Run("Gitem", bold=True)])
+    assert glue_words(words) == [[("a ", False, False), ("Gitem", True, False)]]
 
 
 @pytest.mark.parametrize(

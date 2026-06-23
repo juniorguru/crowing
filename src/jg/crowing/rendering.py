@@ -81,19 +81,37 @@ def _line_height(font: Font) -> float:
 
 
 def wrap_text(draw: Draw, text: str, font: Font, max_width: int) -> list[str]:
-    """Greedily wrap ``text`` so that each line fits within ``max_width``."""
+    """Greedily wrap ``text`` so that each line fits within ``max_width``.
+
+    A single-letter word never ends a line; it stays glued to the next word.
+    """
     lines: list[str] = []
     current = ""
-    for word in text.split():
-        candidate = f"{current} {word}".strip()
+    for unit in _glue_text(text.split()):
+        candidate = f"{current} {unit}".strip()
         if current and draw.textlength(candidate, font=font) > max_width:
             lines.append(current)
-            current = word
+            current = unit
         else:
             current = candidate
     if current:
         lines.append(current)
     return lines
+
+
+def _glue_text(words: list[str]) -> list[str]:
+    """Merge each single-letter word with the following word into one wrap unit."""
+    units: list[str] = []
+    prefix = ""
+    for word in words:
+        if len(word) == 1:
+            prefix = f"{prefix}{word} "
+        else:
+            units.append(f"{prefix}{word}")
+            prefix = ""
+    if prefix:
+        units.append(prefix.rstrip())
+    return units
 
 
 def _block_fits(draw: Draw, lines: list[str], font: Font, max_width: int) -> bool:
@@ -182,6 +200,30 @@ def _split_run(run: Run, words: list[Word], current: Word) -> Word:
     return current
 
 
+def glue_words(words: list[Word]) -> list[Word]:
+    """Merge each single-letter word with the following word into one wrap unit."""
+    units: list[Word] = []
+    prefix: Word = []
+    for word in words:
+        if _word_length(word) == 1:
+            prefix = _with_trailing_space(prefix + word)
+        else:
+            units.append(prefix + word)
+            prefix = []
+    if prefix:
+        units.append(prefix)
+    return units
+
+
+def _word_length(word: Word) -> int:
+    return sum(len(text) for text, _, _ in word)
+
+
+def _with_trailing_space(word: Word) -> Word:
+    text, bold, italic = word[-1]
+    return word[:-1] + [(f"{text} ", bold, italic)]
+
+
 def _word_width(draw: Draw, word: Word, size: int) -> float:
     return sum(
         draw.textlength(text, font=_segment_font(size, b, i)) for text, b, i in word
@@ -255,7 +297,7 @@ def render_paragraph(runs: RichText) -> Image.Image:
     """A content slide: white background, left-aligned dark paragraph with markup."""
     image = Image.new("RGB", (SIZE, SIZE), WHITE)
     draw = ImageDraw.Draw(image)
-    size, lines = fit_words(draw, to_words(runs), CONTENT, CONTENT)
+    size, lines = fit_words(draw, glue_words(to_words(runs)), CONTENT, CONTENT)
     _draw_words(draw, lines, size, DARK)
     return image
 
