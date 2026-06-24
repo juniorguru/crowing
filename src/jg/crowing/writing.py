@@ -50,11 +50,11 @@ def write_reel(
             "by choosing a section with fewer or shorter paragraphs"
         )
     path = output_dir / "reel.mp4"
-    silent = output_dir / ".reel-silent.mp4"
     with tempfile.TemporaryDirectory() as tmp_dir:
-        _encode_silent(frames, durations, Path(tmp_dir), silent, fps)
-    _mux_music(silent, music, path)
-    silent.unlink()
+        tmp_path = Path(tmp_dir)
+        silent = tmp_path / "reel-silent.mp4"
+        _encode_silent(frames, durations, tmp_path, silent, fps)
+        _mux_music(silent, music, path)
     return path
 
 
@@ -72,12 +72,12 @@ def _encode_silent(
     pixels through ``imageio`` one append at a time, which is what made rendering slow.
     """
     paths = [tmp_dir / f"{index:03d}.png" for index in range(len(frames))]
-    for frame, frame_path in zip(frames, paths):
+    for frame, frame_path in zip(frames, paths, strict=True):
         frame.save(frame_path)
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     inputs = [
         arg
-        for frame_path, duration in zip(paths, durations)
+        for frame_path, duration in zip(paths, durations, strict=True)
         for arg in (
             "-loop",
             "1",
