@@ -11,6 +11,7 @@ from jg.crowing.parsing import parse_section
 from jg.crowing.rendering import (
     REEL_MAX_SECONDS,
     REEL_WARN_SECONDS,
+    add_swipe_transitions,
     reel_durations,
     render_reel,
     render_section,
@@ -53,5 +54,8 @@ async def _run(url: str, output_dir: Path) -> Path:
     images = render_section(section)
     created = write_images(images, output_dir, handbook_url)
     write_carousel(images, created)
-    write_reel(render_reel(section, intro=images[0]), created, durations)
+    frames, durations = add_swipe_transitions(
+        render_reel(section, intro=images[0]), durations
+    )
+    write_reel(frames, created, durations)
     return created

@@ -17,6 +17,7 @@ from jg.crowing.rendering import (
     SIZE,
     WHITE,
     YELLOW,
+    add_swipe_transitions,
     fit_intro,
     glue_words,
     intro_layout,
@@ -29,6 +30,7 @@ from jg.crowing.rendering import (
     render_paragraph,
     render_reel,
     render_section,
+    swipe_transition_frames,
     to_reel_frame,
     to_words,
     wrap_text,
@@ -356,3 +358,52 @@ def test_reel_durations_fixed_hook_reading_paragraphs_fixed_cta():
     assert durations[0] == REEL_HOOK_SECONDS
     assert durations[1] == pytest.approx(100 / READING_WPM * 60)
     assert durations[-1] == REEL_CTA_SECONDS
+
+
+def test_swipe_transition_frames_slides_a_out_and_b_in():
+    a = Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT), hex_to_rgb(YELLOW))
+    b = Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT), hex_to_rgb(WHITE))
+    frames = swipe_transition_frames(a, b, count=5)
+    assert len(frames) == 5
+    assert all(frame.size == (REEL_WIDTH, REEL_HEIGHT) for frame in frames)
+    # a's left edge starts fully visible, b's right edge ends fully visible
+    assert frames[0].getpixel((0, 0)) == hex_to_rgb(YELLOW)
+    assert frames[-1].getpixel((REEL_WIDTH - 1, 0)) == hex_to_rgb(WHITE)
+
+
+def test_swipe_transition_frames_progress_left():
+    a = Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT), hex_to_rgb(YELLOW))
+    b = Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT), hex_to_rgb(WHITE))
+    frames = swipe_transition_frames(a, b, count=5)
+    # the boundary between a's yellow and b's white moves left, frame over frame
+    edges = [
+        next(
+            x for x in range(REEL_WIDTH) if frame.getpixel((x, 0)) != hex_to_rgb(YELLOW)
+        )
+        for frame in frames
+    ]
+    assert edges == sorted(edges, reverse=True)
+
+
+def test_add_swipe_transitions_inserts_frames_between_slides():
+    frames = [
+        Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT), c)
+        for c in ["#fffa72", "#fff", "#fffa72"]
+    ]
+    durations = [3.0, 4.0, 4.0]
+    new_frames, new_durations = add_swipe_transitions(frames, durations, fps=10)
+    transition_count = round(0.25 * 10)
+    assert len(new_frames) == len(frames) + 2 * transition_count
+    assert len(new_durations) == len(new_frames)
+    assert new_frames[0] is frames[0]
+    assert new_frames[-1] is frames[-1]
+
+
+def test_add_swipe_transitions_preserves_total_duration():
+    frames = [
+        Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT), c)
+        for c in ["#fffa72", "#fff", "#fffa72"]
+    ]
+    durations = [3.0, 4.0, 4.0]
+    _, new_durations = add_swipe_transitions(frames, durations, fps=10)
+    assert sum(new_durations) == pytest.approx(sum(durations), abs=0.1)
