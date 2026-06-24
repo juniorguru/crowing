@@ -756,10 +756,15 @@ def to_reel_frame(slide: Image.Image) -> Image.Image:
     return frame
 
 
-def render_reel(section: Section) -> list[Image.Image]:
-    """Render the carousel as 9:16 reel frames; the call to action is a taller 2:3 card."""
+def render_reel(section: Section, intro: Image.Image | None = None) -> list[Image.Image]:
+    """Render the carousel as 9:16 reel frames; the call to action is a taller 2:3 card.
+
+    ``intro`` lets the caller pass in the square intro slide already rendered for the
+    carousel, since it's identical here and re-rendering it would repeat the same
+    font-fitting work for no visual difference.
+    """
     slides = [
-        render_intro(section.title, section.heading),
+        intro if intro is not None else render_intro(section.title, section.heading),
         *(
             render_paragraph(
                 paragraph, height=REEL_CARD_HEIGHT, wordmark_size=REEL_WORDMARK_SIZE
