@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from PIL import Image, ImageDraw
 
@@ -325,7 +327,9 @@ def test_render_reel_is_one_portrait_frame_per_slide():
 def test_render_reel_reuses_a_given_intro_instead_of_rendering_one():
     section = Section(title="T", heading="H", paragraphs=[[Run("a")]])
     intro = Image.new("RGB", (SIZE, SIZE), hex_to_rgb(YELLOW))
-    frames = render_reel(section, intro=intro)
+    with patch("jg.crowing.rendering.render_intro") as render_intro_mock:
+        frames = render_reel(section, intro=intro)
+    render_intro_mock.assert_not_called()
     assert frames[0].getpixel((5, 5)) == hex_to_rgb(YELLOW)
 
 
