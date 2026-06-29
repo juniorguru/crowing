@@ -65,3 +65,38 @@ def test_write_reel_carries_a_music_track(frames, tmp_path):
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     streams = subprocess.run([ffmpeg, "-i", str(path)], capture_output=True, text=True)
     assert "Audio: aac" in streams.stderr
+
+
+def test_write_reel_swipes_between_slides_instead_of_a_hard_cut(frames, tmp_path):
+    path = write_reel(frames, tmp_path, [3, 4, 4], fps=10, transition_seconds=0.5)
+    reader = imageio.get_reader(path)
+    fps = reader.get_meta_data()["fps"]
+    yellow_mean, white_mean = sum((255, 250, 114)) / 3, 255.0
+    # well before the 0.5s transition window (2.5s-3.0s), still the pure first slide
+    before = reader.get_data(round(2.4 * fps)).mean()
+    # mid-transition: part of the frame is still slide one, part is already slide two
+    midpoint = reader.get_data(round(2.75 * fps)).mean()
+    # well after the transition window, already the pure second slide
+    after = reader.get_data(round(3.1 * fps)).mean()
+    assert before == pytest.approx(yellow_mean, abs=3)
+    assert after == pytest.approx(white_mean, abs=3)
+    assert yellow_mean < midpoint < white_mean
+
+
+def test_write_reel_handles_a_single_frame(tmp_path):
+    frame = Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT), "#fffa72")
+    path = write_reel([frame], tmp_path, [3], fps=5)
+    reader = imageio.get_reader(path)
+    duration = reader.count_frames() / reader.get_meta_data()["fps"]
+    assert duration == pytest.approx(3, abs=1)
+
+
+def test_write_reel_clamps_transitions_around_a_short_slide(tmp_path):
+    colors = ["#fffa72", "#ffffff", "#fffa72"]
+    frames = [Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT), color) for color in colors]
+    # the middle slide (0.2s) is shorter than the default 0.25s transition; this must
+    # not raise or collapse the slide to a negative-length clip
+    path = write_reel(frames, tmp_path, [3, 0.2, 4], fps=10)
+    reader = imageio.get_reader(path)
+    duration = reader.count_frames() / reader.get_meta_data()["fps"]
+    assert duration == pytest.approx(3 + 0.2 + 4 - 2 * 0.2, abs=0.3)

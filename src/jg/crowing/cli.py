@@ -12,6 +12,7 @@ from jg.crowing.rendering import (
     REEL_MAX_SECONDS,
     REEL_WARN_SECONDS,
     reel_durations,
+    reel_total_seconds,
     render_reel,
     render_section,
 )
@@ -42,7 +43,7 @@ async def _run(url: str, output_dir: Path) -> Path:
     html = await fetch_html(url)
     section = parse_section(html, handbook_url.anchor)
     durations = reel_durations(section)
-    total = sum(durations)
+    total = reel_total_seconds(durations)
     if total >= REEL_MAX_SECONDS:
         raise InvalidInputError(
             f"The reel would be {round(total)}s long; keep it under {REEL_MAX_SECONDS}s "
