@@ -1,16 +1,21 @@
 """Imperative shell: persist rendered images to disk."""
 
 import subprocess
+import tempfile
 from pathlib import Path
 
-import imageio.v2 as imageio
 import imageio_ffmpeg
-import numpy as np
 from PIL import Image
 
 from jg.crowing.errors import InvalidInputError
 from jg.crowing.rendering import REEL_FPS, REEL_MAX_SECONDS, REEL_MUSIC
 from jg.crowing.urls import HandbookUrl
+
+
+# Slideshows of static slides compress well even at a fast x264 preset: on a
+# 35s/1047-frame fixture, "veryfast" cut encoding from ~13.5s to ~9s while the
+# output was, if anything, slightly smaller (394KB vs 468KB at "medium").
+REEL_PRESET = "veryfast"
 
 
 def write_images(images: list[Image.Image], base_dir: Path, url: HandbookUrl) -> Path:
@@ -45,20 +50,67 @@ def write_reel(
             "by choosing a section with fewer or shorter paragraphs"
         )
     path = output_dir / "reel.mp4"
-    silent = output_dir / ".reel-silent.mp4"
-    counts = [round(seconds * fps) for seconds in durations]
-    # macro_block_size=8 keeps the exact 1080x1920 size (both divisible by 8)
-    writer = imageio.get_writer(silent, fps=fps, codec="libx264", macro_block_size=8)
-    try:
-        for frame, count in zip(frames, counts):
-            pixels = np.asarray(frame.convert("RGB"))
-            for _ in range(count):
-                writer.append_data(pixels)
-    finally:
-        writer.close()
-    _mux_music(silent, music, path)
-    silent.unlink()
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        silent = tmp_path / "reel-silent.mp4"
+        _encode_silent(frames, durations, tmp_path, silent, fps)
+        _mux_music(silent, music, path)
     return path
+
+
+def _encode_silent(
+    frames: list[Image.Image],
+    durations: list[float],
+    tmp_dir: Path,
+    silent: Path,
+    fps: int,
+) -> None:
+    """Encode ``frames`` held for ``durations`` seconds each into a silent ``silent`` video.
+
+    Each frame is written to disk once; ffmpeg loops each one for its own duration and
+    concatenates the results, instead of Python piping every duplicated frame's raw
+    pixels through ``imageio`` one append at a time, which is what made rendering slow.
+    """
+    paths = [tmp_dir / f"{index:03d}.png" for index in range(len(frames))]
+    for frame, frame_path in zip(frames, paths, strict=True):
+        frame.save(frame_path)
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    inputs = [
+        arg
+        for frame_path, duration in zip(paths, durations, strict=True)
+        for arg in (
+            "-loop",
+            "1",
+            "-framerate",
+            str(fps),
+            "-t",
+            str(duration),
+            "-i",
+            str(frame_path),
+        )
+    ]
+    streams = "".join(f"[{index}:v]" for index in range(len(frames)))
+    subprocess.run(
+        [
+            ffmpeg,
+            "-y",
+            "-loglevel",
+            "error",
+            *inputs,
+            "-filter_complex",
+            f"{streams}concat=n={len(frames)}:v=1:a=0[v]",
+            "-map",
+            "[v]",
+            "-c:v",
+            "libx264",
+            "-preset",
+            REEL_PRESET,
+            "-pix_fmt",
+            "yuv420p",
+            str(silent),
+        ],
+        check=True,
+    )
 
 
 def _mux_music(video: Path, music: str, output: Path) -> None:

@@ -53,5 +53,5 @@ async def _run(url: str, output_dir: Path) -> Path:
     images = render_section(section)
     created = write_images(images, output_dir, handbook_url)
     write_carousel(images, created)
-    write_reel(render_reel(section), created, durations)
+    write_reel(render_reel(section, intro=images[0]), created, durations)
     return created
