@@ -322,6 +322,13 @@ def test_render_reel_is_one_portrait_frame_per_slide():
     assert all(frame.size == (REEL_WIDTH, REEL_HEIGHT) for frame in frames)
 
 
+def test_render_reel_reuses_a_given_intro_instead_of_rendering_one():
+    section = Section(title="T", heading="H", paragraphs=[[Run("a")]])
+    intro = Image.new("RGB", (SIZE, SIZE), hex_to_rgb(YELLOW))
+    frames = render_reel(section, intro=intro)
+    assert frames[0].getpixel((5, 5)) == hex_to_rgb(YELLOW)
+
+
 def test_render_cta_can_be_a_taller_two_by_three_card():
     card = render_cta(["Co je Git"], height=REEL_CARD_HEIGHT, stretch=True)
     assert card.size == (SIZE, REEL_CARD_HEIGHT)

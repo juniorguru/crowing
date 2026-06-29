@@ -12,9 +12,9 @@ from jg.crowing.rendering import REEL_FPS, REEL_MAX_SECONDS, REEL_MUSIC
 from jg.crowing.urls import HandbookUrl
 
 
-# Slideshows of static slides compress well even at a fast x264 preset; this
-# trades a little bitrate for several times less encoding time (see commit
-# message / PR description for the measurements that justify the trade-off).
+# Slideshows of static slides compress well even at a fast x264 preset: on a
+# 35s/1047-frame fixture, "veryfast" cut encoding from ~13.5s to ~9s while the
+# output was, if anything, slightly smaller (394KB vs 468KB at "medium").
 REEL_PRESET = "veryfast"
 
 
