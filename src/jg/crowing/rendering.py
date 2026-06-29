@@ -804,42 +804,18 @@ def reel_durations(section: Section) -> list[float]:
 REEL_TRANSITION_SECONDS = 0.25  # quick swipe cut between slides, not a hard cut
 
 
-def _swipe_frame(
-    frame_a: Image.Image, frame_b: Image.Image, offset: int
-) -> Image.Image:
-    """Composite ``frame_a`` shifted ``offset`` px left, ``frame_b`` sliding in behind it."""
-    frame = Image.new("RGB", (REEL_WIDTH, REEL_HEIGHT))
-    frame.paste(frame_a, (-offset, 0))
-    frame.paste(frame_b, (REEL_WIDTH - offset, 0))
-    return frame
-
-
-def swipe_transition_frames(
-    frame_a: Image.Image, frame_b: Image.Image, count: int
-) -> list[Image.Image]:
-    """``count`` frames swiping ``frame_a`` out to the left as ``frame_b`` enters."""
+def transition_durations(
+    durations: list[float], transition_seconds: float = REEL_TRANSITION_SECONDS
+) -> list[float]:
+    """Per-gap crossfade duration, clamped so a transition never outlasts either slide it joins."""
     return [
-        _swipe_frame(frame_a, frame_b, round(REEL_WIDTH * (step + 1) / (count + 1)))
-        for step in range(count)
+        min(transition_seconds, a, b)
+        for a, b in zip(durations[:-1], durations[1:], strict=True)
     ]
 
 
-def add_swipe_transitions(
-    frames: list[Image.Image], durations: list[float], fps: int = REEL_FPS
-) -> tuple[list[Image.Image], list[float]]:
-    """Splice a swipe cut between each pair of slides, borrowing its time from the slide before."""
-    transition_count = round(REEL_TRANSITION_SECONDS * fps)
-    if transition_count <= 0:
-        return frames, durations
-    transition_seconds = transition_count / fps
-    new_frames = [frames[0]]
-    new_durations = [durations[0]]
-    for frame, duration in zip(frames[1:], durations[1:]):
-        new_durations[-1] = max(new_durations[-1] - transition_seconds, 1 / fps)
-        new_frames.extend(
-            swipe_transition_frames(new_frames[-1], frame, transition_count)
-        )
-        new_durations.extend([1 / fps] * transition_count)
-        new_frames.append(frame)
-        new_durations.append(duration)
-    return new_frames, new_durations
+def reel_total_seconds(
+    durations: list[float], transition_seconds: float = REEL_TRANSITION_SECONDS
+) -> float:
+    """Total reel length once consecutive slides overlap by their transition duration."""
+    return sum(durations) - sum(transition_durations(durations, transition_seconds))

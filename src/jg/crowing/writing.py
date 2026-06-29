@@ -8,7 +8,14 @@ import imageio_ffmpeg
 from PIL import Image
 
 from jg.crowing.errors import InvalidInputError
-from jg.crowing.rendering import REEL_FPS, REEL_MAX_SECONDS, REEL_MUSIC
+from jg.crowing.rendering import (
+    REEL_FPS,
+    REEL_MAX_SECONDS,
+    REEL_MUSIC,
+    REEL_TRANSITION_SECONDS,
+    reel_total_seconds,
+    transition_durations,
+)
 from jg.crowing.urls import HandbookUrl
 
 
@@ -35,15 +42,23 @@ def write_carousel(images: list[Image.Image], output_dir: Path) -> Path:
     return path
 
 
+REEL_TRANSITION = "slideleft"  # ffmpeg xfade transition style for the swipe cut
+
+
 def write_reel(
     frames: list[Image.Image],
     output_dir: Path,
     durations: list[float],
     fps: int = REEL_FPS,
     music: str = REEL_MUSIC,
+    transition_seconds: float = REEL_TRANSITION_SECONDS,
 ) -> Path:
-    """Glue ``frames`` into a ``reel.mp4`` slideshow with music, ``durations`` seconds each."""
-    total = sum(durations)
+    """Glue ``frames`` into a ``reel.mp4`` slideshow with music, ``durations`` seconds each.
+
+    Consecutive slides swipe-cut into each other over ``transition_seconds``, instead
+    of a hard cut.
+    """
+    total = reel_total_seconds(durations, transition_seconds)
     if total >= REEL_MAX_SECONDS:
         raise InvalidInputError(
             f"The reel would be {round(total)}s long; keep it under {REEL_MAX_SECONDS}s "
@@ -53,7 +68,7 @@ def write_reel(
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path = Path(tmp_dir)
         silent = tmp_path / "reel-silent.mp4"
-        _encode_silent(frames, durations, tmp_path, silent, fps)
+        _encode_silent(frames, durations, tmp_path, silent, fps, transition_seconds)
         _mux_music(silent, music, path)
     return path
 
@@ -64,12 +79,13 @@ def _encode_silent(
     tmp_dir: Path,
     silent: Path,
     fps: int,
+    transition_seconds: float,
 ) -> None:
     """Encode ``frames`` held for ``durations`` seconds each into a silent ``silent`` video.
 
     Each frame is written to disk once; ffmpeg loops each one for its own duration and
-    concatenates the results, instead of Python piping every duplicated frame's raw
-    pixels through ``imageio`` one append at a time, which is what made rendering slow.
+    splices the results together with ``xfade``, instead of Python compositing every
+    transition frame and piping it through as a duplicated input.
     """
     paths = [tmp_dir / f"{index:03d}.png" for index in range(len(frames))]
     for frame, frame_path in zip(frames, paths, strict=True):
@@ -89,7 +105,7 @@ def _encode_silent(
             str(frame_path),
         )
     ]
-    streams = "".join(f"[{index}:v]" for index in range(len(frames)))
+    filter_complex = _xfade_filter(durations, transition_seconds)
     subprocess.run(
         [
             ffmpeg,
@@ -98,7 +114,7 @@ def _encode_silent(
             "error",
             *inputs,
             "-filter_complex",
-            f"{streams}concat=n={len(frames)}:v=1:a=0[v]",
+            filter_complex,
             "-map",
             "[v]",
             "-c:v",
@@ -111,6 +127,34 @@ def _encode_silent(
         ],
         check=True,
     )
+
+
+def _xfade_filter(durations: list[float], transition_seconds: float) -> str:
+    """Build a ``filter_complex`` chaining each slide into the next with ``xfade``.
+
+    Each transition's ``offset`` is the point, on the running merged stream's own
+    timeline, where the next slide starts swiping in: the time elapsed so far minus
+    the transitions already subtracted from it (each one shortens the merged stream
+    by its own duration).
+    """
+    if len(durations) == 1:
+        return "[0:v]format=yuv420p[v]"
+    transitions = transition_durations(durations, transition_seconds)
+    elapsed = durations[0]
+    label = "0:v"
+    parts = []
+    for index, (duration, transition) in enumerate(
+        zip(durations[1:], transitions, strict=True), start=1
+    ):
+        out_label = "v" if index == len(durations) - 1 else f"v{index}"
+        offset = elapsed - transition
+        parts.append(
+            f"[{label}][{index}:v]xfade=transition={REEL_TRANSITION}:"
+            f"duration={transition}:offset={offset}[{out_label}]"
+        )
+        elapsed += duration - transition
+        label = out_label
+    return ";".join(parts)
 
 
 def _mux_music(video: Path, music: str, output: Path) -> None:
