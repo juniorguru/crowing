@@ -4,6 +4,7 @@ import re
 from collections.abc import Callable
 from functools import lru_cache
 from importlib.resources import files
+from itertools import pairwise
 from typing import NamedTuple
 
 from PIL import Image, ImageDraw, ImageFont
@@ -807,11 +808,25 @@ REEL_TRANSITION_SECONDS = 0.25  # quick swipe cut between slides, not a hard cut
 def transition_durations(
     durations: list[float], transition_seconds: float = REEL_TRANSITION_SECONDS
 ) -> list[float]:
-    """Per-gap crossfade duration, clamped so a transition never outlasts either slide it joins."""
-    return [
-        min(transition_seconds, a, b)
-        for a, b in zip(durations[:-1], durations[1:], strict=True)
-    ]
+    """Per-gap crossfade duration, clamped so a transition never outlasts either slide it joins.
+
+    The two transitions touching an interior slide are also scaled down together so
+    they never add up to more than that slide's own duration — otherwise the slide
+    would vanish into a three-way blend instead of getting any standalone time.
+    """
+    gaps = [min(transition_seconds, a, b) for a, b in pairwise(durations)]
+    changed = True
+    while changed:
+        changed = False
+        for index in range(1, len(gaps)):
+            slide = durations[index]
+            total = gaps[index - 1] + gaps[index]
+            if total > slide:
+                scale = slide / total
+                gaps[index - 1] *= scale
+                gaps[index] *= scale
+                changed = True
+    return gaps
 
 
 def reel_total_seconds(

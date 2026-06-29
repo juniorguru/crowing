@@ -71,13 +71,16 @@ def test_write_reel_swipes_between_slides_instead_of_a_hard_cut(frames, tmp_path
     path = write_reel(frames, tmp_path, [3, 4, 4], fps=10, transition_seconds=0.5)
     reader = imageio.get_reader(path)
     fps = reader.get_meta_data()["fps"]
-    # mid-transition, the frame should blend the outgoing and incoming slide colors,
-    # not be a clean cut to either one
-    midpoint = reader.get_data(round((3 - 0.25) * fps))
-    yellow, white = (255, 250, 114), (255, 255, 255)
-    pixel = tuple(midpoint[0, 0])
-    assert pixel != yellow
-    assert pixel != white
+    yellow_mean, white_mean = sum((255, 250, 114)) / 3, 255.0
+    # well before the 0.5s transition window (2.5s-3.0s), still the pure first slide
+    before = reader.get_data(round(2.4 * fps)).mean()
+    # mid-transition: part of the frame is still slide one, part is already slide two
+    midpoint = reader.get_data(round(2.75 * fps)).mean()
+    # well after the transition window, already the pure second slide
+    after = reader.get_data(round(3.1 * fps)).mean()
+    assert before == pytest.approx(yellow_mean, abs=3)
+    assert after == pytest.approx(white_mean, abs=3)
+    assert yellow_mean < midpoint < white_mean
 
 
 def test_write_reel_handles_a_single_frame(tmp_path):

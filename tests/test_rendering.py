@@ -367,7 +367,16 @@ def test_transition_durations_one_per_gap():
 
 def test_transition_durations_clamped_to_the_shorter_neighbor():
     durations = [3.0, 0.1, 4.0]
-    assert transition_durations(durations, transition_seconds=0.25) == [0.1, 0.1]
+    assert transition_durations(durations, transition_seconds=0.25) == [0.05, 0.05]
+
+
+def test_transition_durations_never_exceed_an_interior_slides_own_duration():
+    # both gaps independently clamp to 0.2 (the middle slide's own length), but
+    # together they'd consume it twice over, leaving it no standalone time at all
+    durations = [3.0, 0.2, 4.0]
+    gaps = transition_durations(durations, transition_seconds=0.25)
+    assert sum(gaps) == pytest.approx(0.2)
+    assert gaps == [pytest.approx(0.1), pytest.approx(0.1)]
 
 
 def test_reel_total_seconds_subtracts_the_overlaps():
