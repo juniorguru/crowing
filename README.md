@@ -86,9 +86,15 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - White slides are the same except that the JUNIOR.GURU text is larger and it's positioned right bottom related to an imaginary 2:3 canvas, not to an imaginary 1:1 square canvas
 - H.264 video in an MP4 container, sRGB, 30 fps
 - The first image (the hook) is on screen for 3s, each paragraph slide for as many seconds as needed for reading the text on screen with speed of reading 200wpm, and the call to action for a fixed 10s
-- Plain cut transitions
 - If the whole video would be 90s or longer, the tool raises an invalid input error, because that is too long for a reel; if it is 60s or longer (but under 90s), it still renders but prints a warning that the video is getting long
 - A royalty-free background music track [`slideshow-moire-main-version-02-01-15390.m4a`](./src/jg/crowing/assets/slideshow-moire-main-version-02-01-15390.m4a) plays under the slides, encoded as AAC and cut to the length of the video
+
+### Video cuts
+
+- Consecutive slides swipe into each other with a quick left slide transition (~0.25s), not a hard cut
+- Each transition is clamped so it never outlasts either slide it joins
+- The two transitions around a short interior slide are scaled down together, so the slide still gets some standalone time instead of vanishing into a three-way blend
+- Overlapping transitions shorten the total video length accordingly
 
 ### Typography
 
