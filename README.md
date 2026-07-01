@@ -87,7 +87,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - H.264 video in an MP4 container, sRGB, 30 fps
 - The first image (the hook) is on screen for 3s, each paragraph slide for as many seconds as needed for reading the text on screen with speed of reading 200wpm, and the call to action for a fixed 10s
 - If the whole video would be 90s or longer, the tool raises an invalid input error, because that is too long for a reel; if it is 60s or longer (but under 90s), it still renders but prints a warning that the video is getting long
-- A royalty-free background music track [`slideshow-moire-main-version-02-01-15390.m4a`](./src/jg/crowing/assets/slideshow-moire-main-version-02-01-15390.m4a) plays under the slides, encoded as AAC and cut to the length of the video
+- A royalty-free background music track [`Kicking It - Dyalla.m4a`](./src/jg/crowing/assets/Kicking%20It%20-%20Dyalla.m4a) plays under the slides, encoded as AAC and cut to the length of the video; the source track has a long intro, so it is trimmed to leave 3s of intro before the beat drops (aligning the drop with the end of the 3s hook) with a 1s fade-in at the start
 
 ### Video cuts
 

@@ -744,7 +744,7 @@ REEL_CTA_TOPICS_SIZE = 44  # cap for the reel topics, a touch smaller than befor
 # Royalty-free background track, stored as low-bitrate mono AAC (the codec the reel
 # uses) so it muxes in by a plain stream copy; longer than any reel, so -shortest
 # trims it to the video. See assets/ for the licence.
-REEL_MUSIC = str(_ASSETS / "slideshow-moire-main-version-02-01-15390.m4a")
+REEL_MUSIC = str(_ASSETS / "Kicking It - Dyalla.m4a")
 
 
 def to_reel_frame(slide: Image.Image) -> Image.Image:
