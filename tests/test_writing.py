@@ -2,6 +2,7 @@ import subprocess
 
 import imageio.v2 as imageio
 import imageio_ffmpeg
+import numpy as np
 import pytest
 from PIL import Image
 from pypdf import PdfReader
@@ -9,6 +10,11 @@ from pypdf import PdfReader
 from jg.crowing.errors import InvalidInputError
 from jg.crowing.rendering import REEL_HEIGHT, REEL_WIDTH, SIZE
 from jg.crowing.writing import write_carousel, write_reel
+
+
+def _frame_mean(reader, index: int) -> float:
+    """Average brightness of a reel frame (plain ndarray, not imageio's Array subclass)."""
+    return float(np.asarray(reader.get_data(index)).mean())
 
 
 @pytest.fixture
@@ -73,11 +79,11 @@ def test_write_reel_swipes_between_slides_instead_of_a_hard_cut(frames, tmp_path
     fps = reader.get_meta_data()["fps"]
     yellow_mean, white_mean = sum((255, 250, 114)) / 3, 255.0
     # well before the 0.5s transition window (2.5s-3.0s), still the pure first slide
-    before = reader.get_data(round(2.4 * fps)).mean()
+    before = _frame_mean(reader, round(2.4 * fps))
     # mid-transition: part of the frame is still slide one, part is already slide two
-    midpoint = reader.get_data(round(2.75 * fps)).mean()
+    midpoint = _frame_mean(reader, round(2.75 * fps))
     # well after the transition window, already the pure second slide
-    after = reader.get_data(round(3.1 * fps)).mean()
+    after = _frame_mean(reader, round(3.1 * fps))
     assert before == pytest.approx(yellow_mean, abs=3)
     assert after == pytest.approx(white_mean, abs=3)
     assert yellow_mean < midpoint < white_mean

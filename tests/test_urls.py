@@ -1,12 +1,42 @@
 import pytest
 
 from jg.crowing.errors import InvalidInputError
-from jg.crowing.urls import HandbookUrl, parse_url
+from jg.crowing.urls import EventUrl, HandbookUrl, parse_url
 
 
 def test_parse_url_returns_path_and_anchor():
     url = parse_url("https://junior.guru/handbook/git/#reseni-problemu-s-gitem")
     assert url == HandbookUrl(path="/handbook/git/", anchor="reseni-problemu-s-gitem")
+
+
+def test_handbook_name_is_the_anchor():
+    assert parse_url("https://junior.guru/handbook/git/#x").name == "x"
+
+
+def test_parse_url_returns_event_number():
+    assert parse_url("https://junior.guru/events/63/") == EventUrl(
+        path="/events/63/", number="63"
+    )
+
+
+def test_event_dir_name_is_events():
+    assert parse_url("https://junior.guru/events/63/").dir_name == "events"
+
+
+def test_event_name_is_the_number():
+    assert parse_url("https://junior.guru/events/63/").name == "63"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://junior.guru/events/",
+        "https://junior.guru/events//",
+    ],
+)
+def test_missing_event_number_raises_invalid_input(url):
+    with pytest.raises(InvalidInputError):
+        parse_url(url)
 
 
 @pytest.mark.parametrize(

@@ -1,12 +1,14 @@
 from unittest.mock import patch
 
 import pytest
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 from jg.crowing.models import Run, Section
 from jg.crowing.rendering import (
     BLUE,
+    CHICK_WIDTH,
     DARK,
+    EVENT_CTA,
     PADDING,
     READING_WPM,
     REEL_CARD_HEIGHT,
@@ -17,6 +19,8 @@ from jg.crowing.rendering import (
     SIZE,
     WHITE,
     YELLOW,
+    circle_image,
+    compose_square,
     fit_intro,
     glue_words,
     intro_layout,
@@ -220,6 +224,19 @@ def test_cta_topics_cloud_is_a_watermark_below_the_button():
     )
 
 
+def test_render_cta_button_reflects_the_given_content():
+    # the event card's button label/icon differ from the handbook's, so its blue
+    # button spans a different width than the default handbook one
+    assert _button_bbox(render_cta()) != _button_bbox(render_cta(content=EVENT_CTA))
+
+
+def test_render_event_cta_has_no_topics_cloud():
+    image = render_cta(content=EVENT_CTA)  # events pass no topics
+    pixels = image.load()
+    gold = hex_to_rgb("#998c00")
+    assert not any(pixels[x, y] == gold for x in range(SIZE) for y in range(SIZE))
+
+
 def test_cta_button_is_bootstrap_blue_with_white_glyphs():
     image = render_cta()
     pixels = image.load()
@@ -388,3 +405,69 @@ def test_reel_total_seconds_subtracts_the_overlaps():
 
 def test_reel_total_seconds_with_a_single_slide():
     assert reel_total_seconds([3.0], transition_seconds=0.25) == 3.0
+
+
+def test_compose_square_is_a_square_of_the_given_size():
+    composed = compose_square(Image.new("RGB", (800, 400), BLUE))
+    assert composed.size == (SIZE, SIZE)
+
+
+def test_compose_square_keeps_the_aspect_ratio_within_the_padded_box():
+    composed = compose_square(Image.new("RGB", (800, 400), BLUE))
+    box = SIZE - 2 * PADDING
+    # a 2:1 screenshot is width-constrained: it spans the whole box wide, half as tall
+    left, top, right, bottom = _color_bbox(composed, hex_to_rgb(BLUE))
+    assert (left, right) == (PADDING, PADDING + box)
+    assert (bottom - top) == pytest.approx(box // 2, abs=2)
+    assert (top + bottom) // 2 == pytest.approx(SIZE // 2, abs=1)  # vertically centered
+
+
+def test_compose_square_pads_with_white():
+    composed = compose_square(Image.new("RGB", (800, 400), BLUE))
+    assert composed.getpixel((0, 0)) == hex_to_rgb(WHITE)
+
+
+def test_compose_square_pads_with_the_given_background():
+    composed = compose_square(Image.new("RGB", (800, 400), BLUE), background=YELLOW)
+    assert composed.getpixel((0, 0)) == hex_to_rgb(YELLOW)
+
+
+def _color_bbox(image: Image.Image, color: tuple[int, int, int]):
+    """Bounding box of the pixels matching ``color`` as ``(left, top, right, bottom)``."""
+    diff = ImageChops.difference(
+        image.convert("RGB"), Image.new("RGB", image.size, color)
+    )
+    mask = diff.convert("L").point(lambda value: 255 if value == 0 else 0)
+    return mask.getbbox()
+
+
+def test_circle_image_is_a_square_of_the_requested_width():
+    circled = circle_image(Image.new("RGB", (200, 120), BLUE), width=80)
+    assert circled.size == (80, 80)
+
+
+def test_circle_image_keeps_the_center_and_clears_the_corners():
+    circled = circle_image(Image.new("RGB", (200, 120), BLUE), width=80)
+    assert circled.getpixel((40, 40))[3] == 255  # opaque in the middle
+    assert circled.getpixel((0, 0))[3] == 0  # transparent in the corner
+
+
+def test_render_intro_uses_the_corner_image_instead_of_the_chick():
+    avatar = Image.new("RGBA", (CHICK_WIDTH, CHICK_WIDTH), (255, 0, 255, 255))
+    image = render_intro("Focus v době AI", "Adina Fox", corner_image=avatar)
+    pixels = image.load()
+    region = [(x, y) for x in range(SIZE // 2, SIZE) for y in range(SIZE // 2, SIZE)]
+    assert any(pixels[x, y] == (255, 0, 255) for x, y in region)
+
+
+def test_wrap_text_keeps_two_letter_caps_with_previous_word(draw):
+    lines = wrap_text(draw, "Život v době AI", load_font(200), max_width=300)
+    assert not any(line.strip() == "AI" for line in lines)  # "AI" never starts a line
+    assert any("době AI" in line for line in lines)
+
+
+def test_glue_words_keeps_two_letter_caps_with_previous_word():
+    words = to_words([Run("v době AI")])
+    units = ["".join(segment[0] for segment in unit) for unit in glue_words(words)]
+    assert "AI" not in units
+    assert "v době AI" in units

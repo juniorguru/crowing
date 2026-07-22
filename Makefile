@@ -1,8 +1,10 @@
 .PHONY: install test format assets build smoke demo verify clean
 
-# Install dependencies into the project virtualenv.
+# Install dependencies into the project virtualenv, plus the browser Playwright
+# drives to screenshot event pages.
 install:
 	uv sync
+	uv run playwright install firefox
 
 # Run the whole test suite (this also runs ruff lint, ruff format check
 # and the cyclomatic complexity check via pytest-ruff).

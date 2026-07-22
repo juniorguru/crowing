@@ -2,7 +2,8 @@
 
 import re
 from collections.abc import Callable
-from functools import lru_cache
+from dataclasses import dataclass
+from functools import cache
 from importlib.resources import files
 from itertools import pairwise
 from typing import NamedTuple
@@ -24,11 +25,8 @@ DARK = "#343434"
 WHITE = "#ffffff"
 BLUE = "#1755d1"  # Bootstrap primary blue, as on junior.guru thumbnails
 
-CTA_MESSAGE = "Zaj\u00edm\u00e1 t\u011b tohle t\u00e9ma?\nOtev\u0159i si p\u0159\u00edru\u010dku a \u010dti d\u00e1l!"
 CTA_MESSAGE_SIZE = 48  # smaller than the logo and topics
 CTA_MESSAGE_WEIGHT = 600
-CTA_TEXT = "junior.guru/handbook"
-CTA_ICON = "\uf447"  # Bootstrap Icons "journals" (U+F447)
 CTA_TEXT_SIZE = 56
 CTA_ICON_SIZE = 60
 CTA_ICON_GAP = 22
@@ -44,6 +42,27 @@ CTA_MESSAGE_BUDGET = round(CONTENT * 0.42)
 BUTTON_RADIUS_RATIO = 0.1  # only slightly rounded corners, not a pill
 WORDMARK = "JUNIOR.GURU"  # small blue monospace signature on paragraph slides
 WORDMARK_SIZE = 30
+
+
+@dataclass(frozen=True)
+class CtaContent:
+    """The text, button label and icon that vary between call-to-action cards."""
+
+    message: str
+    button_text: str
+    icon: str
+
+
+HANDBOOK_CTA = CtaContent(
+    message="Zajímá tě tohle téma?\nOtevři si příručku a čti dál!",
+    button_text="junior.guru/handbook",
+    icon="",  # Bootstrap Icons "journals"
+)
+EVENT_CTA = CtaContent(
+    message="Zajímá tě tahle online akce?\nPohlídej si ji!",
+    button_text="junior.guru/events",
+    icon="",  # Bootstrap Icons "play-circle-fill"
+)
 
 # Inter and Liberation Mono are bundled under the SIL Open Font License 1.1
 # (see assets/Inter-LICENSE and assets/LiberationMono-LICENSE).
@@ -71,7 +90,7 @@ Font = ImageFont.FreeTypeFont
 Draw = ImageDraw.ImageDraw
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_font(size: int, weight: int = 400, italic: bool = False) -> Font:
     """Load Inter at ``size`` pixels with the given weight and slant."""
     font = ImageFont.truetype(_FONT_PATHS[italic], size)
@@ -85,19 +104,19 @@ def _segment_font(size: int, bold: bool, italic: bool, code: bool = False) -> Fo
     return load_font(size, 700 if bold else 400, italic)
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_icon_font(size: int) -> Font:
     """Load the bundled Bootstrap Icons font at ``size`` pixels."""
     return ImageFont.truetype(_ICON_PATH, size)
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_mono_font(size: int) -> Font:
     """Load the bundled Liberation Mono font at ``size`` pixels (for monospace text)."""
     return ImageFont.truetype(_MONO_PATH, size)
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_chick(width: int) -> Image.Image:
     """Load the bundled chick illustration scaled to ``width`` pixels (keeps alpha)."""
     chick = Image.open(_CHICK_PATH).convert("RGBA")
@@ -105,7 +124,7 @@ def load_chick(width: int) -> Image.Image:
     return chick.resize((width, height))
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_logo(width: int) -> Image.Image:
     """Load the bundled junior.guru wordmark scaled to ``width`` pixels (keeps alpha)."""
     logo = Image.open(_LOGO_PATH).convert("RGBA")
@@ -113,7 +132,7 @@ def load_logo(width: int) -> Image.Image:
     return logo.resize((width, height))
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_arrow(size: int) -> Image.Image:
     """Render the arrow-right-circle-fill icon as a blue disc with a white arrow."""
     font = load_icon_font(size)
@@ -162,8 +181,14 @@ def _wrap_paragraph(draw: Draw, text: str, font: Font, max_width: int) -> list[s
     return lines
 
 
+def _sticks_back(text: str) -> bool:
+    """A two-letter all-caps word (e.g. "AI") never starts a line: it glues backwards."""
+    core = text.rstrip(".,:;!?")
+    return len(core) == 2 and core.isalpha() and core.isupper()
+
+
 def _glue_text(words: list[str]) -> list[str]:
-    """Merge each single-letter word with the following word into one wrap unit."""
+    """Glue single-letter words to the next word and two-letter all-caps to the previous."""
     units: list[str] = []
     prefix = ""
     for word in words:
@@ -174,7 +199,13 @@ def _glue_text(words: list[str]) -> list[str]:
             prefix = ""
     if prefix:
         units.append(prefix.rstrip())
-    return units
+    glued: list[str] = []
+    for unit in units:
+        if glued and _sticks_back(unit):
+            glued[-1] = f"{glued[-1]} {unit}"
+        else:
+            glued.append(unit)
+    return glued
 
 
 def _block_fits(draw: Draw, lines: list[str], font: Font, max_width: int) -> bool:
@@ -249,9 +280,15 @@ class IntroLayout(NamedTuple):
     text_box: Box
 
 
-def intro_layout(draw: Draw, title: str, heading: str) -> IntroLayout:
-    """Lay out the intro text above a bottom-right chick and bottom-left arrow."""
-    chick = load_chick(CHICK_WIDTH)
+def intro_layout(
+    draw: Draw, title: str, heading: str, corner: Image.Image | None = None
+) -> IntroLayout:
+    """Lay out the intro text above a bottom-right image and bottom-left arrow.
+
+    ``corner`` overrides the default chick illustration in the bottom-right corner
+    (e.g. an event's circular speaker avatar).
+    """
+    chick = corner if corner is not None else load_chick(CHICK_WIDTH)
     arrow = load_arrow(round(chick.height * ARROW_RATIO))  # one third smaller
     bottom = SIZE - PADDING
     chick_box = (
@@ -292,11 +329,17 @@ def _intro_width(
     return max(*title, *heading)
 
 
-def render_intro(title: str, heading: str) -> Image.Image:
-    """Intro slide: monospace title, heading, chick bottom-left, arrow bottom-right."""
+def render_intro(
+    title: str, heading: str, corner_image: Image.Image | None = None
+) -> Image.Image:
+    """Intro slide: monospace title, heading, arrow bottom-left, image bottom-right.
+
+    The bottom-right image is the chick illustration by default, or ``corner_image``
+    (e.g. an event's circular speaker avatar) when given.
+    """
     image = Image.new("RGB", (SIZE, SIZE), YELLOW)
     draw = ImageDraw.Draw(image)
-    layout = intro_layout(draw, title, heading)
+    layout = intro_layout(draw, title, heading, corner_image)
     top = _draw_left(draw, layout.title_lines, layout.title_font, DARK, layout.top)
     top += _line_height(layout.heading_font) * INTRO_GAP_RATIO
     _draw_left(draw, layout.heading_lines, layout.heading_font, DARK, top)
@@ -337,7 +380,7 @@ def _split_run(run: Run, words: list[Word], current: Word) -> Word:
 
 
 def glue_words(words: list[Word]) -> list[Word]:
-    """Merge each single-letter word with the following word into one wrap unit."""
+    """Glue single-letter words to the next word and two-letter all-caps to the previous."""
     units: list[Word] = []
     prefix: Word = []
     for word in words:
@@ -348,11 +391,21 @@ def glue_words(words: list[Word]) -> list[Word]:
             prefix = []
     if prefix:
         units.append(prefix)
-    return units
+    glued: list[Word] = []
+    for unit in units:
+        if glued and _sticks_back(_word_text(unit)):
+            glued[-1] = _with_trailing_space(glued[-1]) + unit
+        else:
+            glued.append(unit)
+    return glued
 
 
 def _word_length(word: Word) -> int:
     return sum(len(text) for text, *_ in word)
+
+
+def _word_text(word: Word) -> str:
+    return "".join(text for text, *_ in word)
 
 
 def _with_trailing_space(word: Word) -> Word:
@@ -480,9 +533,11 @@ def fit_plain(
     return font, lines
 
 
-def _button_size(draw: Draw, text_font: Font, icon_font: Font) -> tuple[float, float]:
-    icon_width = draw.textlength(CTA_ICON, font=icon_font)
-    text_width = draw.textlength(CTA_TEXT, font=text_font)
+def _button_size(
+    draw: Draw, text_font: Font, icon_font: Font, content: CtaContent
+) -> tuple[float, float]:
+    icon_width = draw.textlength(content.icon, font=icon_font)
+    text_width = draw.textlength(content.button_text, font=text_font)
     ascent, descent = text_font.getmetrics()
     width = icon_width + CTA_ICON_GAP + text_width + 2 * CTA_PADDING_X
     height = ascent + descent + 2 * CTA_PADDING_Y
@@ -490,17 +545,26 @@ def _button_size(draw: Draw, text_font: Font, icon_font: Font) -> tuple[float, f
 
 
 def _draw_button(
-    draw: Draw, left: float, top: float, text_font: Font, icon_font: Font
+    draw: Draw,
+    left: float,
+    top: float,
+    text_font: Font,
+    icon_font: Font,
+    content: CtaContent,
 ) -> None:
-    width, height = _button_size(draw, text_font, icon_font)
+    width, height = _button_size(draw, text_font, icon_font, content)
     box = (left, top, left + width, top + height)
     draw.rounded_rectangle(box, radius=round(height * BUTTON_RADIUS_RATIO), fill=BLUE)
-    icon_width = draw.textlength(CTA_ICON, font=icon_font)
+    icon_width = draw.textlength(content.icon, font=icon_font)
     content_left = left + CTA_PADDING_X
     middle = top + height / 2
-    draw.text((content_left, middle), CTA_ICON, font=icon_font, fill=WHITE, anchor="lm")
+    draw.text(
+        (content_left, middle), content.icon, font=icon_font, fill=WHITE, anchor="lm"
+    )
     text_left = content_left + icon_width + CTA_ICON_GAP
-    draw.text((text_left, middle), CTA_TEXT, font=text_font, fill=WHITE, anchor="lm")
+    draw.text(
+        (text_left, middle), content.button_text, font=text_font, fill=WHITE, anchor="lm"
+    )
 
 
 Chip = tuple[str, str, bool]  # text, fill colour, is a topic (gets middots around it)
@@ -601,9 +665,12 @@ def render_cta(
     topics_size: int = CTA_TOPICS_SIZE,
     cloud_width: int = CONTENT,
     stretch: bool = False,
+    content: CtaContent = HANDBOOK_CTA,
 ) -> Image.Image:
     """Centered logo, message and flat blue button, then a topics cloud filling the rest.
 
+    ``content`` supplies the message, button label and icon that differ per context
+    (handbook vs event); pass no ``topics`` for a card without the topics cloud.
     ``height``/``gap`` default to the square card. With ``stretch`` the gaps between
     the four elements are equal and absorb all slack, so the content spans the card
     top to bottom (used by the taller 2:3 reel call to action).
@@ -614,10 +681,10 @@ def render_cta(
     logo = load_logo(logo_width)
     text_font = load_font(CTA_TEXT_SIZE, weight=600)
     icon_font = load_icon_font(CTA_ICON_SIZE)
-    button = _button_size(draw, text_font, icon_font)
+    button = _button_size(draw, text_font, icon_font, content)
     message_font, message_lines = fit_plain(
         draw,
-        CTA_MESSAGE,
+        content.message,
         CONTENT,
         CTA_MESSAGE_BUDGET,
         message_size,
@@ -632,6 +699,7 @@ def render_cta(
         button,
         text_font,
         icon_font,
+        content,
     )
     if stretch:
         _draw_cta_stretched(*args, topics, topics_size, cloud_width, height)
@@ -649,6 +717,7 @@ def _draw_cta_stacked(
     button,
     text_font,
     icon_font,
+    content,
     topics,
     topics_size,
     cloud_width,
@@ -662,7 +731,9 @@ def _draw_cta_stacked(
     top += logo.height + gap
     top = _draw_center(draw, message_lines, message_font, DARK, top)
     button_top = top + gap
-    _draw_button(draw, (SIZE - button_width) / 2, button_top, text_font, icon_font)
+    _draw_button(
+        draw, (SIZE - button_width) / 2, button_top, text_font, icon_font, content
+    )
     cloud_top = button_top + button_height + gap
     cloud_height = height - PADDING - cloud_top
     if topics and cloud_height > 0:
@@ -681,6 +752,7 @@ def _draw_cta_stretched(
     button,
     text_font,
     icon_font,
+    content,
     topics,
     topics_size,
     cloud_width,
@@ -707,10 +779,57 @@ def _draw_cta_stretched(
     image.paste(logo, (int((SIZE - logo.width) / 2), int(top)), logo)
     top += logo.height + step
     top = _draw_center(draw, message_lines, message_font, DARK, top) + step
-    _draw_button(draw, (SIZE - button_width) / 2, top, text_font, icon_font)
+    _draw_button(draw, (SIZE - button_width) / 2, top, text_font, icon_font, content)
     top += button_height + step
     if lines:
         _draw_cloud(draw, lines, font, cloud_gap, top, cloud_height)
+
+
+# --- event screenshots (composing onto squares) -----------------------------
+
+
+def circle_image(image: Image.Image, width: int = CHICK_WIDTH) -> Image.Image:
+    """Center-crop ``image`` to a circle of ``width`` pixels with a transparent outside.
+
+    Used for an event's speaker avatar in the intro's bottom-right corner. The mask is
+    drawn at 4x and downscaled so the circle's edge stays smooth.
+    """
+    side = min(image.width, image.height)
+    left = (image.width - side) // 2
+    top = (image.height - side) // 2
+    square = (
+        image.convert("RGBA")
+        .crop((left, top, left + side, top + side))
+        .resize((width, width), Image.Resampling.LANCZOS)
+    )
+    scale = 4
+    mask = Image.new("L", (width * scale, width * scale), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, width * scale, width * scale), fill=255)
+    square.putalpha(mask.resize((width, width), Image.Resampling.LANCZOS))
+    return square
+
+
+def compose_square(
+    screenshot: Image.Image,
+    size: int = SIZE,
+    padding: int = PADDING,
+    background: str = WHITE,
+) -> Image.Image:
+    """Fit ``screenshot`` onto a ``background`` square, keeping its aspect ratio.
+
+    The screenshot is scaled to fit inside a ``size - 2 * padding`` box and centered,
+    so every square shares the same padding and nothing touches the borders.
+    """
+    canvas = Image.new("RGB", (size, size), background)
+    box = size - 2 * padding
+    scale = min(box / screenshot.width, box / screenshot.height)
+    width = max(1, round(screenshot.width * scale))
+    height = max(1, round(screenshot.height * scale))
+    resized = screenshot.convert("RGB").resize(
+        (width, height), Image.Resampling.LANCZOS
+    )
+    canvas.paste(resized, ((size - width) // 2, (size - height) // 2))
+    return canvas
 
 
 def render_section(section: Section) -> list[Image.Image]:
@@ -757,7 +876,9 @@ def to_reel_frame(slide: Image.Image) -> Image.Image:
     return frame
 
 
-def render_reel(section: Section, intro: Image.Image | None = None) -> list[Image.Image]:
+def render_reel(
+    section: Section, intro: Image.Image | None = None
+) -> list[Image.Image]:
     """Render the carousel as 9:16 reel frames; the call to action is a taller 2:3 card.
 
     ``intro`` lets the caller pass in the square intro slide already rendered for the

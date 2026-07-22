@@ -2,7 +2,7 @@ import pytest
 
 from jg.crowing.errors import InvalidInputError
 from jg.crowing.models import Run
-from jg.crowing.parsing import parse_section
+from jg.crowing.parsing import parse_event, parse_section
 from tests.conftest import load_fixture
 
 
@@ -117,3 +117,27 @@ def test_real_handbook_page(git_html):
     assert len(section.paragraphs) == 2
     assert text_of(section.paragraphs[0]).startswith("Asi neexistuje člověk")
     assert text_of(section.paragraphs[1]).startswith("Pokud se ti to stane")
+
+
+def test_parse_event_splits_speaker_and_event_from_h1():
+    page = parse_event(load_fixture("event.html"), "https://junior.guru/events/63/")
+    assert (page.speaker_name, page.event_name) == ("Adina Fox", "Focus v době AI")
+
+
+def test_parse_event_reads_the_date_and_time_without_year_from_article_details():
+    page = parse_event(load_fixture("event.html"), "https://junior.guru/events/63/")
+    assert page.event_date == "30.6. 18:00"
+
+
+def test_parse_event_resolves_avatar_url_from_stahni_fotku_link():
+    page = parse_event(load_fixture("event.html"), "https://junior.guru/events/63/")
+    assert page.avatar_url == (
+        "https://junior.guru/static/avatars-participants/adina.png"
+    )
+
+
+def test_parse_event_without_stahni_fotku_link_has_no_avatar():
+    page = parse_event(
+        load_fixture("event-no-avatar.html"), "https://junior.guru/events/63/"
+    )
+    assert page.avatar_url is None

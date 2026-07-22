@@ -1,11 +1,56 @@
 """Pure functions for turning handbook HTML into a :class:`Section`."""
 
 import re
+from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 from jg.crowing.errors import InvalidInputError
-from jg.crowing.models import RichText, Run, Section
+from jg.crowing.models import EventPage, RichText, Run, Section
+
+
+AVATAR_LINK_TEXT = "Stáhni fotku"  # download link junior.guru puts next to real photos
+# e.g. "30.6.2026, 18:00" → day, month, optional time (the year is dropped)
+DATE_RE = re.compile(r"(\d{1,2})\.\s*(\d{1,2})\.\s*\d{4}(?:[,\s]+(\d{1,2}:\d{2}))?")
+
+
+def parse_event(html: str, base_url: str) -> EventPage:
+    """Extract the event name and date, the speaker name, and the avatar URL, if any.
+
+    The H1 reads ``speaker(s): event`` — the speaker is everything before the first
+    colon, the event the rest. ``.article-details`` holds the date and the optional
+    "Stáhni fotku" avatar link; ``base_url`` resolves the avatar's relative link.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    for link in soup.select("a.headerlink"):
+        link.decompose()
+    if not isinstance(h1 := soup.find("h1"), Tag):
+        raise InvalidInputError("Page contains no H1")
+    speaker, colon, event = _plain_text(h1).partition(":")
+    details = soup.select_one(".article-details")
+    return EventPage(
+        event_name=event.strip() if colon else "",
+        speaker_name=speaker.strip(),
+        event_date=_find_event_date(details),
+        avatar_url=_find_avatar(details, base_url),
+    )
+
+
+def _find_event_date(details: Tag | None) -> str:
+    """Day-month and time, no year, e.g. ``30.6. 18:00`` from ``.article-details``."""
+    if details is None or not (match := DATE_RE.search(_plain_text(details))):
+        return ""
+    date = f"{match.group(1)}.{match.group(2)}."
+    return f"{date} {match.group(3)}" if match.group(3) else date
+
+
+def _find_avatar(details: Tag | None, base_url: str) -> str | None:
+    if details is None:
+        return None
+    for link in details.select("a.article-details-link[href]"):
+        if _plain_text(link) == AVATAR_LINK_TEXT:
+            return urljoin(base_url, str(link["href"]))
+    return None
 
 
 HEADINGS = ("h1", "h2", "h3", "h4", "h5", "h6")

@@ -16,7 +16,7 @@ from jg.crowing.rendering import (
     reel_total_seconds,
     transition_durations,
 )
-from jg.crowing.urls import HandbookUrl
+from jg.crowing.urls import Url
 
 
 # Slideshows of static slides compress well even at a fast x264 preset: on a
@@ -25,9 +25,9 @@ from jg.crowing.urls import HandbookUrl
 REEL_PRESET = "veryfast"
 
 
-def write_images(images: list[Image.Image], base_dir: Path, url: HandbookUrl) -> Path:
-    """Save ``images`` as ``01.png``, ``02.png`` … under ``base_dir/<dir>/<anchor>``."""
-    output_dir = base_dir / url.dir_name / url.anchor
+def write_images(images: list[Image.Image], base_dir: Path, url: Url) -> Path:
+    """Save ``images`` as ``01.png``, ``02.png`` … under ``base_dir/<dir>/<name>``."""
+    output_dir = base_dir / url.dir_name / url.name
     output_dir.mkdir(parents=True, exist_ok=True)
     for index, image in enumerate(images, start=1):
         image.save(output_dir / f"{index:02d}.png")

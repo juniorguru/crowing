@@ -1,6 +1,10 @@
 # Crowing 📢
 
-Creates marketing assets from a piece of junior.guru website.
+Creates the following marketing assets from a piece of junior.guru website:
+
+- Series of square images for an Instagram post
+- LinkedIn carousel PDF
+- Reel video
 
 ## Creating event content
 
@@ -19,6 +23,7 @@ $ crowing "https://junior.guru/events/63/"
 - Sets the browser viewport to be 400px wide
 - Scrolls down to the featured .media-card element
 - Removes the .media-card-button call to action element
+- Removes the .media-card-badge badge
 - Removes underline from all links in the text
 - Changes color of links to the color of their parent text, except for .icon-links which can stay blue as they are
 - Takes a screenshot of the featured media card, so that it is completely visible
@@ -28,9 +33,10 @@ $ crowing "https://junior.guru/events/63/"
 - Opens the page in headless browser
 - Sets the browser viewport to be 400px wide
 - Scrolls down to the .lead paragraph element
+- Changes the background to #f4f8fe
 - Removes underline from all links in the subsequent .note-explainer text
 - Changes color of links to the color of their parent text
-- Takes a screenshot of the lead paragraph, so that it is completely visible
+- Takes a separate screenshot of each paragraph inside .lead, each must be completely visible on its screenshot
 
 ### Preparation: Note explainer screenshot
 
@@ -41,19 +47,28 @@ $ crowing "https://junior.guru/events/63/"
 - Changes color of links to the color of their parent text
 - Takes a separate screenshot of each .note-explainer-item, each item must be completely visible on its screenshot
 
+### Preparation: Intro image
+
+- Contains "Online akce" with the date and time of the event, but without year. Then new line, and the name of the event. E.g. "Online akce, 30.6. 18:00" and then "Focus v době AI".
+- The page's .article-details contain the date of the event
+- The page's H1 has the name of the speaker(s) as all text before the first `:`, the rest is the name of the event
+- If the page's .article-details contain "Stáhni fotku" link, which leads to the speaker avatar, the intro image contains this image in the bottom right corner, rounded to circle
+- The texts never break after a single-letter word or before uppercase two-letter word. E.g. "Řešení problémů s Gitem" must never break between "s" and "Gitem". "Život v době AI" must never break between "v" and "době" or between "době" and "AI".
+
+### Preparation: Call to action image
+
+- Text: "Zajímá tě tahle online akce? Pohlídej si ji!"
+- Button icon: [play-circle-fill](https://icons.getbootstrap.com/icons/play-circle-fill/)
+- Button text: "junior.guru/events"
+
 ### Instagram post
 
 - Instagram-ready 1080×1080px square images called 01.png, 02.png, etc., all with white background
 - All contain the prepared screenshots, each resized so that it fits the square while keeping its aspect ratio, and with some padding added so that it doesn't touch the square borders and the result is aestethically pleasing. This padding is the same accross all the squares
 - First image contains the media card
-- Second image contains the lead
-- A series of images follows, each containing a single note explainer item, with their original order preserved
-
-### LinkedIn carousel
-
-- Takes all the images created for the Instagram post and glues them into a single PDF, which LinkedIn accepts as a document/carousel post
-- The PDF is called `carousel.pdf` and lives next to the images
-- One 1080×1080px image per page, in the same order as the images
+- A series of images with #f4f8fe background follows, each containing a single lead paragraph item, with their original order
+- A series of images with white background follows, each containing a single note explainer item, with their original order preserved
+- The last image is the call to action image
 
 ### Errors
 
@@ -77,18 +92,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 
 ### Instagram post: Intro image
 
-- Instagram-ready square image called 01.png
-- #fffa72 background
 - Contains the title of the page, new line, and the heading. E.g. "Git a GitHub" and "Řešení problémů s Gitem".
-- The H1 text is monospace and smaller
-- The heading is larger and more important
-- The texts are aligned to left
-- Contains an [illustration of a chick](./src/jg/crowing/assets/chick-icon.svg) in the bottom right corner
-- Contains an [arrow right](https://icons.getbootstrap.com/icons/arrow-right-circle-fill/) in the bottom left corner
-- The arrow fill is #1755d1 but the arrow itself is white
-- The arrow is one third smaller than the chick, both with a bit of padding from the image border
-- Padding consistent with all other Instagram post images
-- Beautiful typography and composition, the text, arrow, or illustration must not collide
 
 ### Instagram post: Paragraph images
 
@@ -102,30 +106,14 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 
 ### Instagram post: Call to action
 
-- Instagram-ready square images called XX.png, where XX is the last number
-- #fffa72 background
-- Everything on the card is center-aligned (the default alignment for the call to action)
-- At the top, the [junior.guru logo](./src/jg/crowing/assets/junior-guru.min.png) above the text
-- Text: "Zajímá tě tohle téma? Otevři si příručku a čti dál!", smaller than the logo and topics
-- Under the text, flat blue button with white text
-- The button:
-  - has a #1755d1 (Bootstrap primary blue) background
-  - has only slightly rounded corners, _not_ a pill: the corner radius is about one tenth of the button's height (Bootstrap's `0.375rem`, i.e. roughly 6px on a 60px-tall button)
-  - says "junior.guru/handbook"
-  - has the white [Bootstrap "journals" icon](https://icons.getbootstrap.com/icons/journals/) right before the text
-  - is large and has margin equal to the card's padding above and below it
+- Text: "Zajímá tě tohle téma? Otevři si příručku a čti dál!"
+- Button icon: [journals](https://icons.getbootstrap.com/icons/journals/)
+- Button text: "junior.guru/handbook"
 - Under the button, a cloud of the topics built from the page's ToC
 - Each topic is displayed without wrapping; topics on the same line are separated by a middot (·) with spaces
 - The topics are dark gold #998c00 so they read like a watermark on the light yellow
 - The cloud stretches over the full width and fills the bottom remaining height, not a condensed left block
 - The whitespace between topics is proportionally larger than between words within a topic, so it reads as a teaser, not a blob
-- Padding consistent with all other Instagram post images
-
-### LinkedIn: carousel
-
-- Takes all the images created for the Instagram post and glues them into a single PDF, which LinkedIn accepts as a document/carousel post
-- The PDF is called `carousel.pdf` and lives next to the images
-- One 1080×1080px image per page, in the same order as the images
 
 ### Reel
 
@@ -148,7 +136,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - If text is on yellow or white, it's #343434
 - If text is on blue, it's white
 - The text in the images renders links as plain text, but preserves other inline markup, such as bold, italics, etc.
-- The text never breaks after a single-letter word. E.g. "Řešení problémů s Gitem" must never break between "s" and "Gitem"
+- The texts never break after a single-letter word or before uppercase two-letter word. E.g. "Řešení problémů s Gitem" must never break between "s" and "Gitem". "Život v době AI" must never break between "v" and "době" or between "době" and "AI".
 - We use "Inter" font for text, and for monospace text (if any) we use "Liberation Mono"
 
 ### Errors
@@ -158,12 +146,42 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 
 ## Behavior common to any given URLs
 
-### Errors
+### Intro images
 
-- If page is not within junior.guru, it raises not implemented
-- If page is not within a namespace which has behavior documented in this README, it raises not implemented - e.g. /handbook/ passes, but /wisdom/ raises
-- If the reel would be 90s or longer (too many paragraphs), it's invalid input error
-- Uses suitable [click exceptions](https://click.palletsprojects.com/en/stable/api/#exceptions) for the input errors
+- Instagram-ready square image called 01.png
+- #fffa72 background
+- Contains smaller text, new line, and larger text
+- The smaller text is monospace
+- The larger text is more important
+- The texts are aligned to left
+- Contains an [illustration of a chick](./src/jg/crowing/assets/chick-icon.svg) in the bottom right corner unless specified otherwise
+- Contains an [arrow right](https://icons.getbootstrap.com/icons/arrow-right-circle-fill/) in the bottom left corner
+- The arrow fill is #1755d1 but the arrow itself is white
+- The arrow is one third smaller than the chick, both with a bit of padding from the image border
+- Padding consistent with all other Instagram post images
+- Beautiful typography and composition, the text, arrow, or illustration must not collide
+
+### Call to action images
+
+- Instagram-ready square image called XX.png, where XX is the last number
+- #fffa72 background
+- Everything on the card is center-aligned (the default alignment for the call to action)
+- At the top, the [junior.guru logo](./src/jg/crowing/assets/junior-guru.min.png) above the text
+- Text follows, smaller than the logo
+- Under the text, flat blue button with white text
+- The button:
+  - has a #1755d1 (Bootstrap primary blue) background
+  - has only slightly rounded corners, _not_ a pill: the corner radius is about one tenth of the button's height (Bootstrap's `0.375rem`, i.e. roughly 6px on a 60px-tall button)
+  - has a text
+  - has a white [Bootstrap icon](https://icons.getbootstrap.com/icons/journals/) right before the text
+  - is large and has margin equal to the card's padding above and below it
+- Padding consistent with all other Instagram post images
+
+### LinkedIn carousel
+
+- Takes all the images created for the Instagram post and glues them into a single PDF, which LinkedIn accepts as a document/carousel post
+- The PDF is called `carousel.pdf` and lives next to the images
+- One 1080×1080px image per page, in the same order as the images
 
 ### Video cuts
 
@@ -171,6 +189,13 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Each transition is clamped so it never outlasts either slide it joins
 - The two transitions around a short interior slide are scaled down together, so the slide still gets some standalone time instead of vanishing into a three-way blend
 - Overlapping transitions shorten the total video length accordingly
+
+### Errors
+
+- If page is not within junior.guru, it raises not implemented
+- If page is not within a namespace which has behavior documented in this README, it raises not implemented - e.g. /handbook/ passes, but /wisdom/ raises
+- If the reel would be 90s or longer (too many paragraphs), it's invalid input error
+- Uses suitable [click exceptions](https://click.palletsprojects.com/en/stable/api/#exceptions) for the input errors
 
 ## Installation and contributing
 

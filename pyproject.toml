@@ -13,6 +13,7 @@ dependencies = [
   "imageio>=2.37.3",
   "imageio-ffmpeg>=0.6.0",
   "pillow>=11.0",
+  "playwright>=1.49",
 ]
 
 [project.scripts]
@@ -20,10 +21,12 @@ crowing = "jg.crowing.cli:main"
 
 [dependency-groups]
 dev = [
+  "numpy>=2.0",
   "pypdf>=5.1",
   "pytest>=8.3",
   "pytest-asyncio>=0.25",
   "pytest-ruff>=0.5",
+  "pytest-xdist>=3.6",
   "ruff>=0.13",
 ]
 
@@ -37,7 +40,7 @@ module-name = "jg.crowing"
 [tool.pytest.ini_options]
 python_files = "test_*.py"
 testpaths = "tests"
-addopts = "--ff --ruff --ruff-format"
+addopts = "--ff --ruff --ruff-format -n auto"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
