@@ -31,6 +31,14 @@ $ crowing "https://junior.guru/stories/simon-koreny/"
 - Each image has #1755d1 monospace text JUNIOR.GURU in right bottom corner, small and thin, but readable
 - Padding consistent with all other Instagram post images
 
+### Preparation: Preview image
+
+- Opens the page in headless browser
+- Sets the browser viewport to be 400px wide
+- Removes .mainnav-items, .subnav, and .mainnav-buttons
+- Takes a screenshot of the whole page as is, and crops it to 400x400px
+- Creates an instagram-ready square image and puts the screenshot in the middle of it with padding equal to the rest of the slides
+
 ### Preparation: Call to action image
 
 - Text: "Pravdivě o kariéře v IT. Přečti si celý rozhovor!"
@@ -42,6 +50,7 @@ $ crowing "https://junior.guru/stories/simon-koreny/"
 - Instagram-ready 1080×1080px square images called 01.png, 02.png, etc., by default with white background
 - First image is the intro
 - A series of lead paragraph images follows, in their original order
+- The preview image follows
 - The last image is the call to action image
 
 ### Errors

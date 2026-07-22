@@ -56,6 +56,7 @@ def _story(paragraphs: list[list[Run]]) -> Story:
 
 
 CORNER = Image.new("RGBA", (CHICK_WIDTH, CHICK_WIDTH), (255, 0, 255, 255))
+PREVIEW = Image.new("RGB", (400, 400), "#00ff00")  # a stand-in page-top screenshot
 
 
 def hex_to_rgb(value: str) -> tuple[int, int, int]:
@@ -344,23 +345,32 @@ def test_render_section_counts_intro_paragraphs_and_cta():
     assert images[-1].getpixel((5, 5)) == hex_to_rgb(YELLOW)
 
 
-def test_render_story_counts_intro_paragraphs_and_cta():
-    images = render_story(_story([[Run("a")], [Run("b")], [Run("c")]]), CORNER)
-    assert len(images) == 1 + 3 + 1
+def test_render_story_counts_intro_paragraphs_preview_and_cta():
+    images = render_story(_story([[Run("a")], [Run("b")], [Run("c")]]), CORNER, PREVIEW)
+    assert len(images) == 1 + 3 + 1 + 1  # intro + paragraphs + preview + cta
     assert images[0].getpixel((5, 5)) == hex_to_rgb(YELLOW)  # intro
     assert images[1].getpixel((5, 5)) == hex_to_rgb(WHITE)  # paragraph
     assert images[-1].getpixel((5, 5)) == hex_to_rgb(YELLOW)  # cta
 
 
 def test_render_story_intro_shows_the_corner_image():
-    intro = render_story(_story([[Run("a")]]), CORNER)[0]
+    intro = render_story(_story([[Run("a")]]), CORNER, PREVIEW)[0]
     pixels = intro.load()
     region = [(x, y) for x in range(SIZE // 2, SIZE) for y in range(SIZE // 2, SIZE)]
     assert any(pixels[x, y] == (255, 0, 255) for x, y in region)
 
 
+def test_render_story_preview_slide_precedes_the_cta():
+    images = render_story(_story([[Run("a")]]), CORNER, PREVIEW)
+    preview = images[-2]  # second to last, right before the cta
+    pixels = preview.load()
+    # the green stand-in screenshot sits centered on the square
+    assert pixels[SIZE // 2, SIZE // 2] == (0, 255, 0)
+    assert preview.getpixel((5, 5)) == hex_to_rgb(WHITE)  # white padding around it
+
+
 def test_render_story_cta_has_no_topics_cloud():
-    cta = render_story(_story([[Run("a")]]), CORNER)[-1]
+    cta = render_story(_story([[Run("a")]]), CORNER, PREVIEW)[-1]
     pixels = cta.load()
     gold = hex_to_rgb("#998c00")
     assert not any(pixels[x, y] == gold for x in range(SIZE) for y in range(SIZE))

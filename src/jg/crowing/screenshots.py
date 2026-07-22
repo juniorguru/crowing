@@ -113,3 +113,45 @@ def _background_css(background: str) -> str:
         f"html, body {{ background: {background} !important; }}\n"
         ".lead, .lead * { background-color: transparent !important; }\n"
     )
+
+
+STORY_PREVIEW_VIEWPORT_WIDTH = 400
+STORY_PREVIEW_CROP = 400  # the top-left square of the page, in CSS pixels
+# Hide the site navigation so the preview shows the story itself, not the chrome.
+STORY_PREVIEW_HIDE_CSS = (
+    ".mainnav-items, .subnav, .mainnav-buttons { display: none !important; }\n"
+)
+
+
+async def capture_story_preview(
+    url: str, *, browser_name: str = "firefox"
+) -> Image.Image:
+    """Screenshot the top ``400×400`` CSS pixels of the story page, sans navigation."""
+    from playwright.async_api import async_playwright
+
+    async with async_playwright() as playwright:
+        browser = await getattr(playwright, browser_name).launch()
+        try:
+            page = await browser.new_page(
+                viewport={
+                    "width": STORY_PREVIEW_VIEWPORT_WIDTH,
+                    "height": VIEWPORT_HEIGHT,
+                },
+                device_scale_factor=DEVICE_SCALE_FACTOR,
+            )
+            try:
+                await page.goto(url, wait_until="networkidle")
+                await page.add_style_tag(content=STORY_PREVIEW_HIDE_CSS)
+                data = await page.screenshot(
+                    clip={
+                        "x": 0,
+                        "y": 0,
+                        "width": STORY_PREVIEW_VIEWPORT_WIDTH,
+                        "height": STORY_PREVIEW_CROP,
+                    }
+                )
+            finally:
+                await page.close()
+        finally:
+            await browser.close()
+    return Image.open(BytesIO(data)).convert("RGB")

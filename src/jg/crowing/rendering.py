@@ -897,15 +897,19 @@ def render_section(section: Section) -> list[Image.Image]:
 STORY_INTRO_LABEL = "Rozhovor"  # small monospace prefix on a story's intro slide
 
 
-def render_story(story: Story, corner_image: Image.Image) -> list[Image.Image]:
-    """Render the full story carousel: intro, one slide per lead sentence, then the CTA.
+def render_story(
+    story: Story, corner_image: Image.Image, preview: Image.Image
+) -> list[Image.Image]:
+    """Render the full story carousel: intro, lead slides, the page preview, then the CTA.
 
     ``corner_image`` is the story's circled ``.article-image`` photo, shown in the
-    intro's bottom-right corner in place of the chick.
+    intro's bottom-right corner in place of the chick. ``preview`` is the page-top
+    screenshot, composed onto a square like any other screenshot slide.
     """
     return [
         render_intro(STORY_INTRO_LABEL, story.title, corner_image=corner_image),
         *(render_paragraph(paragraph) for paragraph in story.paragraphs),
+        compose_square(preview),
         render_cta(content=STORY_CTA),
     ]
 
