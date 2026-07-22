@@ -12,13 +12,15 @@ from jg.crowing.fetching import fetch_bytes, fetch_html
 from jg.crowing.parsing import parse_event, parse_section
 from jg.crowing.rendering import (
     EVENT_CTA,
-    REEL_MAX_SECONDS,
     REEL_WARN_SECONDS,
     circle_image,
     compose_square,
+    event_reel_durations,
+    fit_reel_durations,
     reel_durations,
     reel_total_seconds,
     render_cta,
+    render_event_reel,
     render_intro,
     render_reel,
     render_section,
@@ -56,18 +58,19 @@ async def _run(url: str, output_dir: Path) -> Path:
     return await _run_handbook(parsed, url, output_dir)
 
 
+def _finalize_reel(durations: list[float]) -> list[float]:
+    """Shorten the CTA if the reel is too long (raising if hopeless), and warn if long."""
+    durations = fit_reel_durations(durations)
+    total = reel_total_seconds(durations)
+    if total >= REEL_WARN_SECONDS:
+        click.echo(f"Warning: the reel is {round(total)}s long, getting long", err=True)
+    return durations
+
+
 async def _run_handbook(handbook_url: HandbookUrl, url: str, output_dir: Path) -> Path:
     html = await fetch_html(url)
     section = parse_section(html, handbook_url.anchor)
-    durations = reel_durations(section)
-    total = reel_total_seconds(durations)
-    if total >= REEL_MAX_SECONDS:
-        raise InvalidInputError(
-            f"The reel would be {round(total)}s long; keep it under {REEL_MAX_SECONDS}s "
-            "by choosing a section with fewer or shorter paragraphs"
-        )
-    if total >= REEL_WARN_SECONDS:
-        click.echo(f"Warning: the reel is {round(total)}s long, getting long", err=True)
+    durations = _finalize_reel(reel_durations(section))
     images = render_section(section)
     created = write_images(images, output_dir, handbook_url)
     write_carousel(images, created)
@@ -85,11 +88,10 @@ async def _run_event(event_url: EventUrl, url: str, output_dir: Path) -> Path:
         f"{EVENT_INTRO_LABEL}, {page.event_date}", page.event_name, corner_image=corner
     )
     shots = await capture_event(url)
-    images = [
-        intro,
-        *(compose_square(shot.image, background=shot.background) for shot in shots),
-        render_cta(content=EVENT_CTA),
-    ]
+    squares = [compose_square(shot.image, background=shot.background) for shot in shots]
+    images = [intro, *squares, render_cta(content=EVENT_CTA)]
     created = write_images(images, output_dir, event_url)
     write_carousel(images, created)
+    durations = _finalize_reel(event_reel_durations(shots))
+    write_reel(render_event_reel([intro, *squares], EVENT_CTA), created, durations)
     return created

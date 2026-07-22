@@ -90,11 +90,11 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - In current working directory (or whatever path user passed in CLI option) creates new subdirectory `handbook-git` and inside another one, `reseni-problemu-s-gitem`
 - Inside the subsubdirectory creates a set of assets
 
-### Instagram post: Intro image
+### Preparation: Intro image
 
 - Contains the title of the page, new line, and the heading. E.g. "Git a GitHub" and "Řešení problémů s Gitem".
 
-### Instagram post: Paragraph images
+### Preparation: Paragraph images
 
 - Instagram-ready square images called 02.png, 03.png, etc.
 - One image for each paragraph
@@ -104,7 +104,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Each image has #1755d1 monospace text JUNIOR.GURU in right bottom corner, small and thin, but readable
 - Padding consistent with all other Instagram post images
 
-### Instagram post: Call to action
+### Preparation: Call to action
 
 - Text: "Zajímá tě tohle téma? Otevři si příručku a čti dál!"
 - Button icon: [journals](https://icons.getbootstrap.com/icons/journals/)
@@ -115,29 +115,17 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - The cloud stretches over the full width and fills the bottom remaining height, not a condensed left block
 - The whitespace between topics is proportionally larger than between words within a topic, so it reads as a teaser, not a blob
 
+### Instagram post
+
+- Instagram-ready 1080×1080px square images called 01.png, 02.png, etc., all with white background
+- First image is the intro image
+- A series of paragraph images follows
+- The last image is the call to action image
+
 ### Reel
 
-- Takes the same slides as the carousel and glues them into a slideshow video, `reel.mp4`, next to the images
-- Vertical 9:16, 1080×1920px
-- Each square slide is centered on the 9:16 canvas, padded above and below with that slide's own background colour, so it stays seamless and full-bleed
-- The last call to action slide is slightly different though:
-  - It is 2:3, with equal vertical gaps between the logo, the teaser text, the button and the topics cloud; the gaps absorb all slack so the content spans the card from top to bottom
-  - It is then also centered on the 9:16 canvas, padded above and below
-  - The logo and the text above the button are significantly larger
-  - The topics block keeps the same side padding as the square Instagram images (no extra top/bottom padding beyond the gaps)
+- The topics block at the last call to action slide keeps the same side padding as the square Instagram images (no extra top/bottom padding beyond the gaps)
 - White slides are the same except that the JUNIOR.GURU text is larger and it's positioned right bottom related to an imaginary 2:3 canvas, not to an imaginary 1:1 square canvas
-- H.264 video in an MP4 container, sRGB, 30 fps
-- The first image (the hook) is on screen for 3s, each paragraph slide for as many seconds as needed for reading the text on screen with speed of reading 200wpm, and the call to action for a fixed 10s
-- If the whole video would be 90s or longer, the tool raises an invalid input error, because that is too long for a reel; if it is 60s or longer (but under 90s), it still renders but prints a warning that the video is getting long
-- A royalty-free background music track [`Kicking It - Dyalla.m4a`](./src/jg/crowing/assets/Kicking%20It%20-%20Dyalla.m4a) plays under the slides, encoded as AAC and cut to the length of the video; the source track has a long intro, so it is trimmed to leave 3s of intro before the beat drops (aligning the drop with the end of the 3s hook) with a 1s fade-in at the start
-
-### Typography
-
-- If text is on yellow or white, it's #343434
-- If text is on blue, it's white
-- The text in the images renders links as plain text, but preserves other inline markup, such as bold, italics, etc.
-- The texts never break after a single-letter word or before uppercase two-letter word. E.g. "Řešení problémů s Gitem" must never break between "s" and "Gitem". "Život v době AI" must never break between "v" and "době" or between "době" and "AI".
-- We use "Inter" font for text, and for monospace text (if any) we use "Liberation Mono"
 
 ### Errors
 
@@ -177,11 +165,34 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
   - is large and has margin equal to the card's padding above and below it
 - Padding consistent with all other Instagram post images
 
+### Typography guidelines for assembled images (not those made of screenshots)
+
+- If text is on yellow or white, it's #343434
+- If text is on blue, it's white
+- The text in the images renders links as plain text, but preserves other inline markup, such as bold, italics, etc.
+- The texts never break after a single-letter word or before uppercase two-letter word. E.g. "Řešení problémů s Gitem" must never break between "s" and "Gitem". "Život v době AI" must never break between "v" and "době" or between "době" and "AI".
+- We use "Inter" font for text, and for monospace text (if any) we use "Liberation Mono"
+
 ### LinkedIn carousel
 
 - Takes all the images created for the Instagram post and glues them into a single PDF, which LinkedIn accepts as a document/carousel post
 - The PDF is called `carousel.pdf` and lives next to the images
 - One 1080×1080px image per page, in the same order as the images
+
+### Reel
+
+- Takes the square images and glues them into a slideshow video, `reel.mp4`, next to the images
+- Vertical 9:16, 1080×1920px
+- Each square slide is centered on the 9:16 canvas, padded above and below with that slide's own background colour, so it stays seamless and full-bleed
+- The last call to action image is slightly different:
+  - It is 2:3, with equal vertical gaps between the logo, the teaser text, and the button (and any other subsequent blocks, if present); the gaps absorb all slack so the content spans the card from top to bottom
+  - It is then also centered on the 9:16 canvas, padded above and below
+  - The logo and the text above the button are significantly larger
+- H.264 video in an MP4 container, sRGB, 30 fps
+- The first image (the intro hook) is on screen for 3s, each subsequent slide for as many seconds as needed for reading the text on screen with speed of reading 200wpm, and the call to action for a fixed 10s
+- If the whole video would be 90s or longer, the tool first tries to save the situation by showing call to action only for 5s, and if that doesn't help, it raises an invalid input error, because 90s is too long for a reel
+- If it is 60s or longer (but under 90s), it still renders but prints a warning that the video is getting long
+- A royalty-free background music track [`Kicking It - Dyalla.m4a`](./src/jg/crowing/assets/Kicking%20It%20-%20Dyalla.m4a) plays under the slides, encoded as AAC and cut to the length of the video; the source track has a long intro, so it is trimmed to leave 3s of intro before the beat drops (aligning the drop with the end of the 3s hook) with a 1s fade-in at the start
 
 ### Video cuts
 

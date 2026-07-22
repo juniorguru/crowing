@@ -57,8 +57,15 @@ def fake_event(monkeypatch):
             raise InvalidInputError("Event page has none of the expected elements")
         return shots
 
+    # Skip the (slow) ffmpeg reel encode, as the handbook fixture does.
+    def _fake_write_reel(frames, output_dir, durations, **kwargs):
+        (output_dir / "reel.mp4").write_bytes(b"")
+        return output_dir / "reel.mp4"
+
     monkeypatch.setattr(cli, "fetch_html", _fetch)
     monkeypatch.setattr(cli, "capture_event", _capture)
+    monkeypatch.setattr(cli, "render_event_reel", lambda *args, **kwargs: [])
+    monkeypatch.setattr(cli, "write_reel", _fake_write_reel)
     return shots
 
 
@@ -152,6 +159,14 @@ def test_cli_event_last_image_is_the_yellow_call_to_action(fake_event):
         runner.invoke(cli.main, ["https://junior.guru/events/63/"])
         with Image.open(Path("events") / "63" / "05.png") as image:
             assert image.getpixel((5, 5)) == (255, 250, 114)  # #fffa72 CTA background
+
+
+def test_cli_creates_an_event_reel_next_to_images(fake_event):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli.main, ["https://junior.guru/events/63/"])
+        assert result.exit_code == 0, result.output
+        assert (Path("events") / "63" / "reel.mp4").exists()
 
 
 def test_cli_creates_event_carousel_pdf(fake_event):

@@ -10,7 +10,8 @@ from typing import NamedTuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from jg.crowing.models import RichText, Run, Section
+from jg.crowing.errors import InvalidInputError
+from jg.crowing.models import RichText, Run, Section, Shot
 
 
 SIZE = 1080
@@ -955,3 +956,54 @@ def reel_total_seconds(
 ) -> float:
     """Total reel length once consecutive slides overlap by their transition duration."""
     return sum(durations) - sum(transition_durations(durations, transition_seconds))
+
+
+REEL_CTA_RESCUE_SECONDS = 5  # if the reel is too long, first try a shorter CTA
+
+
+def fit_reel_durations(
+    durations: list[float], transition_seconds: float = REEL_TRANSITION_SECONDS
+) -> list[float]:
+    """Keep the reel under the limit: shorten the CTA to the rescue length if too long.
+
+    Raises :class:`InvalidInputError` if even the shortened CTA can't bring the reel
+    under :data:`REEL_MAX_SECONDS`.
+    """
+    if reel_total_seconds(durations, transition_seconds) < REEL_MAX_SECONDS:
+        return durations
+    rescued = [*durations[:-1], min(durations[-1], float(REEL_CTA_RESCUE_SECONDS))]
+    total = reel_total_seconds(rescued, transition_seconds)
+    if total >= REEL_MAX_SECONDS:
+        raise InvalidInputError(
+            f"The reel would be {round(total)}s long; keep it under {REEL_MAX_SECONDS}s "
+            "by choosing a page with fewer or shorter paragraphs"
+        )
+    return rescued
+
+
+def event_reel_durations(shots: list[Shot]) -> list[float]:
+    """Seconds per event reel slide: a fixed hook, screenshots by reading speed, fixed CTA."""
+    return [
+        float(REEL_HOOK_SECONDS),
+        *(shot.reading_seconds for shot in shots),
+        float(REEL_CTA_SECONDS),
+    ]
+
+
+def render_event_reel(
+    square_slides: list[Image.Image], content: CtaContent
+) -> list[Image.Image]:
+    """Render the event carousel as 9:16 reel frames; the CTA becomes a taller 2:3 card.
+
+    ``square_slides`` are the intro and screenshot squares (everything but the CTA);
+    each is centered on the 9:16 canvas padded with its own background, while the call
+    to action is re-rendered as a stretched 2:3 card so its text fills the taller frame.
+    """
+    cta = render_cta(
+        height=REEL_CARD_HEIGHT,
+        logo_width=REEL_CTA_LOGO_WIDTH,
+        message_size=REEL_CTA_MESSAGE_SIZE,
+        stretch=True,
+        content=content,
+    )
+    return [to_reel_frame(slide) for slide in (*square_slides, cta)]

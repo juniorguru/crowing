@@ -3,7 +3,8 @@ from unittest.mock import patch
 import pytest
 from PIL import Image, ImageChops, ImageDraw
 
-from jg.crowing.models import Run, Section
+from jg.crowing.errors import InvalidInputError
+from jg.crowing.models import Run, Section, Shot
 from jg.crowing.rendering import (
     BLUE,
     CHICK_WIDTH,
@@ -12,16 +13,20 @@ from jg.crowing.rendering import (
     PADDING,
     READING_WPM,
     REEL_CARD_HEIGHT,
+    REEL_CTA_RESCUE_SECONDS,
     REEL_CTA_SECONDS,
     REEL_HEIGHT,
     REEL_HOOK_SECONDS,
+    REEL_MAX_SECONDS,
     REEL_WIDTH,
     SIZE,
     WHITE,
     YELLOW,
     circle_image,
     compose_square,
+    event_reel_durations,
     fit_intro,
+    fit_reel_durations,
     glue_words,
     intro_layout,
     load_font,
@@ -30,6 +35,7 @@ from jg.crowing.rendering import (
     reel_durations,
     reel_total_seconds,
     render_cta,
+    render_event_reel,
     render_intro,
     render_paragraph,
     render_reel,
@@ -471,3 +477,42 @@ def test_glue_words_keeps_two_letter_caps_with_previous_word():
     units = ["".join(segment[0] for segment in unit) for unit in glue_words(words)]
     assert "AI" not in units
     assert "v době AI" in units
+
+
+def test_event_reel_durations_hook_readings_and_cta():
+    shots = [
+        Shot(Image.new("RGB", (10, 10)), reading_seconds=5.0),
+        Shot(Image.new("RGB", (10, 10)), reading_seconds=2.5),
+    ]
+    assert event_reel_durations(shots) == [
+        float(REEL_HOOK_SECONDS),
+        5.0,
+        2.5,
+        float(REEL_CTA_SECONDS),
+    ]
+
+
+def test_render_event_reel_has_one_frame_per_slide_plus_cta():
+    squares = [Image.new("RGB", (SIZE, SIZE), YELLOW) for _ in range(3)]
+    frames = render_event_reel(squares, EVENT_CTA)
+    assert len(frames) == len(squares) + 1  # the CTA is appended
+
+
+def test_render_event_reel_frames_are_9_by_16():
+    frames = render_event_reel([Image.new("RGB", (SIZE, SIZE), WHITE)], EVENT_CTA)
+    assert all(frame.size == (REEL_WIDTH, REEL_HEIGHT) for frame in frames)
+
+
+def test_fit_reel_durations_leaves_a_short_reel_untouched():
+    durations = [3.0, 4.0, 10.0]
+    assert fit_reel_durations(durations) == durations
+
+
+def test_fit_reel_durations_shortens_the_cta_to_rescue_a_long_reel():
+    durations = [3.0, 80.0, 10.0]  # 92s with the full CTA, 87s with the 5s rescue
+    assert fit_reel_durations(durations)[-1] == float(REEL_CTA_RESCUE_SECONDS)
+
+
+def test_fit_reel_durations_raises_when_even_a_short_cta_cannot_help():
+    with pytest.raises(InvalidInputError):
+        fit_reel_durations([3.0, float(REEL_MAX_SECONDS), 10.0])
