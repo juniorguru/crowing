@@ -2,7 +2,64 @@
 
 Creates marketing assets from a piece of junior.guru website.
 
-## Usage and behavior
+## Creating event content
+
+```
+$ crowing "https://junior.guru/events/63/"
+```
+
+- In current working directory (or whatever path user passed in CLI option) creates new subdirectory `events` and inside another one, `63`
+- Prepare a few screenshots (see below) and for each screenshot, also keep along info about a reading time calculated for the screenshot given speed of reading 200wpm
+- Inside the subsubdirectory creates a set of assets
+- Use free and open source browser for the screenshots, such as Firefox or Chromium
+
+### Preparation: Media card screenshot
+
+- Opens the page in headless browser
+- Sets the browser viewport to be 400px wide
+- Scrolls down to the featured .media-card element
+- Removes the .media-card-button call to action element
+- Removes underline from all links in the text
+- Changes color of links to the color of their parent text, except for .icon-links which can stay blue as they are
+- Takes a screenshot of the featured media card, so that it is completely visible
+
+### Preparation: Lead screenshot
+
+- Opens the page in headless browser
+- Sets the browser viewport to be 400px wide
+- Scrolls down to the .lead paragraph element
+- Removes underline from all links in the subsequent .note-explainer text
+- Changes color of links to the color of their parent text
+- Takes a screenshot of the lead paragraph, so that it is completely visible
+
+### Preparation: Note explainer screenshot
+
+- Opens the page in headless browser
+- Sets the browser viewport to be 300px wide
+- Scrolls down to the .note-explainer element
+- Removes underline from all links in the subsequent .note-explainer text
+- Changes color of links to the color of their parent text
+- Takes a separate screenshot of each .note-explainer-item, each item must be completely visible on its screenshot
+
+### Instagram post
+
+- Instagram-ready 1080×1080px square images called 01.png, 02.png, etc., all with white background
+- All contain the prepared screenshots, each resized so that it fits the square while keeping its aspect ratio, and with some padding added so that it doesn't touch the square borders and the result is aestethically pleasing. This padding is the same accross all the squares
+- First image contains the media card
+- Second image contains the lead
+- A series of images follows, each containing a single note explainer item, with their original order preserved
+
+### LinkedIn carousel
+
+- Takes all the images created for the Instagram post and glues them into a single PDF, which LinkedIn accepts as a document/carousel post
+- The PDF is called `carousel.pdf` and lives next to the images
+- One 1080×1080px image per page, in the same order as the images
+
+### Errors
+
+- If the link to /events/ page doesn't include any of the expected elements, it's invalid input error
+
+## Creating handbook content
 
 ```
 $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
@@ -66,12 +123,9 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 
 ### LinkedIn: carousel
 
-- Takes all the images created for the Instagram posts and glues them into a single PDF, which LinkedIn accepts as a document/carousel post
+- Takes all the images created for the Instagram post and glues them into a single PDF, which LinkedIn accepts as a document/carousel post
 - The PDF is called `carousel.pdf` and lives next to the images
-- One image per page, in the same order as the images (`01.png` first, the call to action last)
-- Pages stay 1080×1080 px (1:1), the size LinkedIn recommends and which most users see on mobile; no resizing or cropping, the images already match
-- Because the carousel mirrors the Instagram post, it naturally stays in LinkedIn's sweet spot of a few focused slides (LinkedIn allows up to 300 pages and 100 MB, but short carousels perform best); the bottom-right arrow on the intro doubles as a "swipe through" cue
-- Branding (colors, fonts, layout) is already consistent across pages because they are the very same images
+- One 1080×1080px image per page, in the same order as the images
 
 ### Reel
 
@@ -89,13 +143,6 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - If the whole video would be 90s or longer, the tool raises an invalid input error, because that is too long for a reel; if it is 60s or longer (but under 90s), it still renders but prints a warning that the video is getting long
 - A royalty-free background music track [`Kicking It - Dyalla.m4a`](./src/jg/crowing/assets/Kicking%20It%20-%20Dyalla.m4a) plays under the slides, encoded as AAC and cut to the length of the video; the source track has a long intro, so it is trimmed to leave 3s of intro before the beat drops (aligning the drop with the end of the 3s hook) with a 1s fade-in at the start
 
-### Video cuts
-
-- Consecutive slides swipe into each other with a quick left slide transition (~0.25s), not a hard cut
-- Each transition is clamped so it never outlasts either slide it joins
-- The two transitions around a short interior slide are scaled down together, so the slide still gets some standalone time instead of vanishing into a three-way blend
-- Overlapping transitions shorten the total video length accordingly
-
 ### Typography
 
 - If text is on yellow or white, it's #343434
@@ -106,12 +153,24 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 
 ### Errors
 
+- If link to /handbook/ page doesn't include anchor, it's invalid input error
+- If target /handbook/ page doesn't contain H1, ToC, or the anchor, it's invalid input error
+
+## Behavior common to any given URLs
+
+### Errors
+
 - If page is not within junior.guru, it raises not implemented
-- If page is not within /handbook/, it raises not implemented
-- If link doesn't include anchor, it's invalid input error
-- If target page doesn't contain H1, ToC, or the anchor, it's invalid input error
+- If page is not within a namespace which has behavior documented in this README, it raises not implemented - e.g. /handbook/ passes, but /wisdom/ raises
 - If the reel would be 90s or longer (too many paragraphs), it's invalid input error
 - Uses suitable [click exceptions](https://click.palletsprojects.com/en/stable/api/#exceptions) for the input errors
+
+### Video cuts
+
+- Consecutive slides swipe into each other with a quick left slide transition (~0.25s), not a hard cut
+- Each transition is clamped so it never outlasts either slide it joins
+- The two transitions around a short interior slide are scaled down together, so the slide still gets some standalone time instead of vanishing into a three-way blend
+- Overlapping transitions shorten the total video length accordingly
 
 ## Installation and contributing
 
