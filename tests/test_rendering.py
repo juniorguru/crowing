@@ -236,6 +236,14 @@ def test_render_cta_button_reflects_the_given_content():
     assert _button_bbox(render_cta()) != _button_bbox(render_cta(content=EVENT_CTA))
 
 
+def test_render_cta_without_topics_is_vertically_centered():
+    image = render_cta(content=EVENT_CTA)  # no topics ⇒ centered, not top-heavy
+    # bounding box of everything that isn't the yellow background
+    diff = ImageChops.difference(image, Image.new("RGB", image.size, YELLOW))
+    _, top, _, bottom = diff.convert("L").getbbox()
+    assert (top + bottom) // 2 == pytest.approx(SIZE // 2, abs=8)
+
+
 def test_render_event_cta_has_no_topics_cloud():
     image = render_cta(content=EVENT_CTA)  # events pass no topics
     pixels = image.load()
@@ -364,6 +372,23 @@ def test_render_cta_can_be_a_taller_two_by_three_card():
     assert REEL_CARD_HEIGHT * 2 == SIZE * 3  # 2:3 portrait
 
 
+def test_render_cta_without_topics_keeps_the_button_out_of_the_very_bottom():
+    # on a taller card with no cloud, the button clusters in the lower third rather
+    # than being stretched down to the bottom padding
+    card = render_cta(content=EVENT_CTA, height=REEL_CARD_HEIGHT, stretch=True)
+    blue = hex_to_rgb(BLUE)
+    pixels = card.load()
+    button_bottom = max(
+        y
+        for x in range(0, SIZE, 8)
+        for y in range(REEL_CARD_HEIGHT)
+        if pixels[x, y] == blue
+    )
+    assert (
+        button_bottom < REEL_CARD_HEIGHT - 2 * PADDING
+    )  # not jammed against the bottom
+
+
 def test_reading_seconds_scales_with_word_count():
     assert reading_seconds("word " * 200, wpm=200) == pytest.approx(60)
     assert reading_seconds("word " * 100, wpm=200) == pytest.approx(30)
@@ -436,6 +461,18 @@ def test_compose_square_pads_with_white():
 def test_compose_square_pads_with_the_given_background():
     composed = compose_square(Image.new("RGB", (800, 400), BLUE), background=YELLOW)
     assert composed.getpixel((0, 0)) == hex_to_rgb(YELLOW)
+
+
+def test_compose_square_without_sign_has_no_wordmark():
+    composed = compose_square(Image.new("RGB", (400, 400), WHITE))
+    region = [(x, y) for x in range(SIZE // 2, SIZE) for y in range(SIZE // 2, SIZE)]
+    assert not any(composed.getpixel((x, y)) == hex_to_rgb(BLUE) for x, y in region)
+
+
+def test_compose_square_with_sign_has_blue_wordmark_bottom_right():
+    composed = compose_square(Image.new("RGB", (400, 400), WHITE), sign=True)
+    region = [(x, y) for x in range(SIZE // 2, SIZE) for y in range(SIZE // 2, SIZE)]
+    assert any(composed.getpixel((x, y)) == hex_to_rgb(BLUE) for x, y in region)
 
 
 def _color_bbox(image: Image.Image, color: tuple[int, int, int]):

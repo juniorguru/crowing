@@ -42,12 +42,13 @@ PREPARATION_CSS = (
 )
 
 # The screenshots, in the order the carousel expects them, each as
-# ``(viewport width, selector, background)``: the featured media card, one per lead
-# paragraph (on yellow), then one per note explainer item.
+# ``(viewport width, selector, background, sign)``: the featured media card, one per
+# lead paragraph (on yellow), then one per note explainer item. ``sign`` marks the
+# shots that get the JUNIOR.GURU signature (the lead and note items, not the card).
 _SHOOTS = [
-    (MEDIA_CARD_VIEWPORT_WIDTH, MEDIA_CARD_SELECTOR, WHITE),
-    (LEAD_VIEWPORT_WIDTH, LEAD_PARAGRAPH_SELECTOR, LEAD_BACKGROUND),
-    (NOTE_EXPLAINER_VIEWPORT_WIDTH, NOTE_EXPLAINER_ITEM_SELECTOR, WHITE),
+    (MEDIA_CARD_VIEWPORT_WIDTH, MEDIA_CARD_SELECTOR, WHITE, False),
+    (LEAD_VIEWPORT_WIDTH, LEAD_PARAGRAPH_SELECTOR, LEAD_BACKGROUND, True),
+    (NOTE_EXPLAINER_VIEWPORT_WIDTH, NOTE_EXPLAINER_ITEM_SELECTOR, WHITE, True),
 ]
 
 
@@ -62,8 +63,10 @@ async def capture_event(url: str, *, browser_name: str = "firefox") -> list[Shot
     async with async_playwright() as playwright:
         browser = await getattr(playwright, browser_name).launch()
         try:
-            for width, selector, background in _SHOOTS:
-                shots += await _shoot_all(browser, url, width, selector, background)
+            for width, selector, background, sign in _SHOOTS:
+                shots += await _shoot_all(
+                    browser, url, width, selector, background, sign
+                )
         finally:
             await browser.close()
     if not shots:
@@ -75,7 +78,7 @@ async def capture_event(url: str, *, browser_name: str = "firefox") -> list[Shot
 
 
 async def _shoot_all(
-    browser, url: str, width: int, selector: str, background: str
+    browser, url: str, width: int, selector: str, background: str, sign: bool = False
 ) -> list[Shot]:
     """Load ``url`` at viewport ``width`` and screenshot every ``selector`` element."""
     page = await browser.new_page(
@@ -94,6 +97,7 @@ async def _shoot_all(
                     image=image,
                     reading_seconds=reading_seconds(await element.inner_text()),
                     background=background,
+                    sign=sign,
                 )
             )
         return shots

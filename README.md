@@ -67,7 +67,8 @@ $ crowing "https://junior.guru/events/63/"
 - All contain the prepared screenshots, each resized so that it fits the square while keeping its aspect ratio, and with some padding added so that it doesn't touch the square borders and the result is aestethically pleasing. This padding is the same accross all the squares
 - First image contains the media card
 - A series of images with #f4f8fe background follows, each containing a single lead paragraph item, with their original order
-- A series of images with white background follows, each containing a single note explainer item, with their original order preserved
+- A series of images with white background follows, each containing a single note explainer item, with their original order preserved.
+- Each lead and note explainer image has #1755d1 monospace text JUNIOR.GURU in right bottom corner, small and thin, but readable
 - The last image is the call to action image
 
 ### Errors

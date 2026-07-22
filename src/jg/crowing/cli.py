@@ -88,7 +88,10 @@ async def _run_event(event_url: EventUrl, url: str, output_dir: Path) -> Path:
         f"{EVENT_INTRO_LABEL}, {page.event_date}", page.event_name, corner_image=corner
     )
     shots = await capture_event(url)
-    squares = [compose_square(shot.image, background=shot.background) for shot in shots]
+    squares = [
+        compose_square(shot.image, background=shot.background, sign=shot.sign)
+        for shot in shots
+    ]
     images = [intro, *squares, render_cta(content=EVENT_CTA)]
     created = write_images(images, output_dir, event_url)
     write_carousel(images, created)

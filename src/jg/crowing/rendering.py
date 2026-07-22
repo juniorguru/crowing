@@ -8,7 +8,7 @@ from importlib.resources import files
 from itertools import pairwise
 from typing import NamedTuple
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 from jg.crowing.errors import InvalidInputError
 from jg.crowing.models import RichText, Run, Section, Shot
@@ -41,7 +41,7 @@ CTA_TOPICS_WEIGHT = 400  # regular weight for the topics, not bold
 CTA_TOPICS_SEP = "·"  # middot between topics on the same line
 CTA_MESSAGE_BUDGET = round(CONTENT * 0.42)
 BUTTON_RADIUS_RATIO = 0.1  # only slightly rounded corners, not a pill
-WORDMARK = "JUNIOR.GURU"  # small blue monospace signature on paragraph slides
+WORDMARK = "JUNIOR.GURU"  # small blue monospace signature on paragraph and shot slides
 WORDMARK_SIZE = 30
 
 
@@ -503,11 +503,20 @@ def render_paragraph(
     size, lines = fit_words(draw, glue_words(to_words(runs)), CONTENT, CONTENT)
     top = (height - _line_height(load_font(size)) * len(lines)) / 2
     _draw_words(draw, lines, size, DARK, top)
-    font = load_mono_font(wordmark_size)
-    draw.text(
-        (SIZE - PADDING, height - PADDING), WORDMARK, font=font, fill=BLUE, anchor="rs"
-    )
+    draw_wordmark(image, wordmark_size)
     return image
+
+
+def draw_wordmark(image: Image.Image, size: int = WORDMARK_SIZE) -> None:
+    """Draw the small, thin blue JUNIOR.GURU monospace signature in the bottom-right corner."""
+    draw = ImageDraw.Draw(image)
+    draw.text(
+        (image.width - PADDING, image.height - PADDING),
+        WORDMARK,
+        font=load_mono_font(size),
+        fill=BLUE,
+        anchor="rs",
+    )
 
 
 # --- call to action ---------------------------------------------------------
@@ -702,11 +711,26 @@ def render_cta(
         icon_font,
         content,
     )
-    if stretch:
+    # Stretching only makes sense with a topics cloud to absorb the slack; without one
+    # it would push the button to the very bottom, so fall back to the centered stack.
+    if stretch and topics:
         _draw_cta_stretched(*args, topics, topics_size, cloud_width, height)
     else:
         _draw_cta_stacked(*args, topics, topics_size, cloud_width, height, gap)
     return image
+
+
+def _logo_visible_span(logo: Image.Image) -> tuple[int, int]:
+    """Top offset and height of the logo's visible ink within its (padded) image.
+
+    The logo PNG's alpha isn't tight, so the ink is measured by compositing on white.
+    """
+    on_card = Image.new("RGB", logo.size, YELLOW)
+    on_card.paste(logo, (0, 0), logo)
+    diff = ImageChops.difference(on_card, Image.new("RGB", logo.size, YELLOW))
+    ink = diff.convert("L").point(lambda value: 255 if value > 16 else 0)
+    box = ink.getbbox()
+    return box[1], box[3] - box[1]
 
 
 def _draw_cta_stacked(
@@ -725,11 +749,24 @@ def _draw_cta_stacked(
     height,
     gap,
 ):
-    """Logo at the top, fixed ``gap`` between elements, the cloud filling the rest."""
+    """Fixed ``gap`` between elements; the cloud fills the rest, or the block centers.
+
+    With topics the cloud stretches to the bottom (so the block already spans the card),
+    otherwise the logo/message/button block is centered vertically so it isn't top-heavy.
+    """
     button_width, button_height = button
-    top = float(PADDING)
-    image.paste(logo, (int((SIZE - logo.width) / 2), int(top)), logo)
-    top += logo.height + gap
+    message_height = _line_height(message_font) * len(message_lines)
+    # the logo PNG has some built-in vertical padding; center on its visible bounds
+    logo_top, logo_visible = _logo_visible_span(logo)
+    if topics:
+        logo_y = float(PADDING)
+        content_top = logo_y + logo.height
+    else:
+        block = logo_visible + gap + message_height + gap + button_height
+        logo_y = (height - block) / 2 - logo_top
+        content_top = logo_y + logo_top + logo_visible
+    image.paste(logo, (int((SIZE - logo.width) / 2), int(logo_y)), logo)
+    top = content_top + gap
     top = _draw_center(draw, message_lines, message_font, DARK, top)
     button_top = top + gap
     _draw_button(
@@ -815,11 +852,14 @@ def compose_square(
     size: int = SIZE,
     padding: int = PADDING,
     background: str = WHITE,
+    sign: bool = False,
 ) -> Image.Image:
     """Fit ``screenshot`` onto a ``background`` square, keeping its aspect ratio.
 
     The screenshot is scaled to fit inside a ``size - 2 * padding`` box and centered,
-    so every square shares the same padding and nothing touches the borders.
+    so every square shares the same padding and nothing touches the borders. With
+    ``sign`` the JUNIOR.GURU signature is added to the bottom-right corner (used for
+    the lead and note explainer shots, but not the featured media card).
     """
     canvas = Image.new("RGB", (size, size), background)
     box = size - 2 * padding
@@ -830,6 +870,8 @@ def compose_square(
         (width, height), Image.Resampling.LANCZOS
     )
     canvas.paste(resized, ((size - width) // 2, (size - height) // 2))
+    if sign:
+        draw_wordmark(canvas)
     return canvas
 
 
