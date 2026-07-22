@@ -115,8 +115,10 @@ def _background_css(background: str) -> str:
     )
 
 
-STORY_PREVIEW_VIEWPORT_WIDTH = 400
-STORY_PREVIEW_CROP = 400  # the top-left square of the page, in CSS pixels
+STORY_PREVIEW_VIEWPORT_WIDTH = 800
+# Grab the top of the page as a 9:16 crop (bottom cut off); the square carousel slide is
+# then the top square of this same shot, so both previews share one screenshot.
+STORY_PREVIEW_HEIGHT = round(STORY_PREVIEW_VIEWPORT_WIDTH * 16 / 9)
 # Hide the site navigation so the preview shows the story itself, not the chrome.
 STORY_PREVIEW_HIDE_CSS = (
     ".mainnav-items, .subnav, .mainnav-buttons { display: none !important; }\n"
@@ -126,7 +128,11 @@ STORY_PREVIEW_HIDE_CSS = (
 async def capture_story_preview(
     url: str, *, browser_name: str = "firefox"
 ) -> Image.Image:
-    """Screenshot the top ``400×400`` CSS pixels of the story page, sans navigation."""
+    """Screenshot the story page top as a full-width 9:16 crop (bottom cut off).
+
+    The caller turns this single shot into both the square carousel preview (its top
+    square) and the taller 9:16 reel preview.
+    """
     from playwright.async_api import async_playwright
 
     async with async_playwright() as playwright:
@@ -147,7 +153,7 @@ async def capture_story_preview(
                         "x": 0,
                         "y": 0,
                         "width": STORY_PREVIEW_VIEWPORT_WIDTH,
-                        "height": STORY_PREVIEW_CROP,
+                        "height": STORY_PREVIEW_HEIGHT,
                     }
                 )
             finally:

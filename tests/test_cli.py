@@ -81,7 +81,7 @@ def fake_story(monkeypatch):
         return _png_bytes((255, 0, 255))  # a magenta stand-in for the .article-image
 
     async def _capture_preview(url, **kwargs):
-        return Image.new("RGB", (400, 400), "#00ff00")  # a green stand-in screenshot
+        return Image.new("RGB", (800, 1422), "#00ff00")  # a 9:16 green stand-in shot
 
     def _fake_write_reel(frames, output_dir, durations, **kwargs):
         (output_dir / "reel.mp4").write_bytes(b"")

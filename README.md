@@ -31,13 +31,14 @@ $ crowing "https://junior.guru/stories/simon-koreny/"
 - Each image has #1755d1 monospace text JUNIOR.GURU in right bottom corner, small and thin, but readable
 - Padding consistent with all other Instagram post images
 
-### Preparation: Preview image
+### Preparation: Preview images
 
 - Opens the page in headless browser
-- Sets the browser viewport to be 400px wide
+- Sets the browser viewport to be 800px wide
 - Removes .mainnav-items, .subnav, and .mainnav-buttons
-- Takes a screenshot of the whole page as is, and crops it to 400x400px
-- Creates an instagram-ready square image and puts the screenshot in the middle of it with padding equal to the rest of the slides
+- Takes a screenshot of the whole page as is
+- Crops it the bottom to create one instagram-ready square image and one 9:16 for the purpose of the reel
+- Unlike other slides, this one has no padding, but it has a soft gradient near the bottom border, which goes from transparent (top) to white (bottom)
 
 ### Preparation: Call to action image
 
@@ -52,6 +53,10 @@ $ crowing "https://junior.guru/stories/simon-koreny/"
 - A series of lead paragraph images follows, in their original order
 - The preview image follows
 - The last image is the call to action image
+
+## Reel
+
+- The preview image will stay for a fixed time of 3 seconds
 
 ### Errors
 

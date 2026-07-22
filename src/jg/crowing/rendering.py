@@ -895,6 +895,38 @@ def render_section(section: Section) -> list[Image.Image]:
 
 
 STORY_INTRO_LABEL = "Rozhovor"  # small monospace prefix on a story's intro slide
+STORY_PREVIEW_GRADIENT_RATIO = 0.28  # bottom band that fades the hard crop into white
+
+
+def _fade_bottom(image: Image.Image, band_ratio: float = STORY_PREVIEW_GRADIENT_RATIO):
+    """Blend ``image``'s bottom band into white, transparent at the top of the band.
+
+    Softens the preview's hard bottom crop so it doesn't end in a sharp cut-off line.
+    """
+    image = image.convert("RGB")
+    width, height = image.size
+    band = max(1, round(height * band_ratio))
+    ramp = Image.new("L", (1, band))
+    ramp.putdata(
+        [round(255 * y / (band - 1)) for y in range(band)] if band > 1 else [0]
+    )
+    mask = ramp.resize((width, band))
+    region = image.crop((0, height - band, width, height))
+    white = Image.new("RGB", (width, band), WHITE)
+    image.paste(Image.composite(white, region, mask), (0, height - band))
+    return image
+
+
+def _fill(screenshot: Image.Image, size: tuple[int, int]) -> Image.Image:
+    """Scale ``screenshot`` to exactly ``size``, full-bleed (the preview has no padding)."""
+    return screenshot.convert("RGB").resize(size, Image.Resampling.LANCZOS)
+
+
+def render_story_preview(preview: Image.Image) -> Image.Image:
+    """The square carousel preview: the top square of the shot, full-bleed, faded bottom."""
+    width = preview.width
+    square = preview.crop((0, 0, width, width))
+    return _fade_bottom(_fill(square, (SIZE, SIZE)))
 
 
 def render_story(
@@ -903,13 +935,13 @@ def render_story(
     """Render the full story carousel: intro, lead slides, the page preview, then the CTA.
 
     ``corner_image`` is the story's circled ``.article-image`` photo, shown in the
-    intro's bottom-right corner in place of the chick. ``preview`` is the page-top
-    screenshot, composed onto a square like any other screenshot slide.
+    intro's bottom-right corner in place of the chick. ``preview`` is the 9:16 page-top
+    screenshot; its top square is placed full-bleed (no padding, unlike the other slides).
     """
     return [
         render_intro(STORY_INTRO_LABEL, story.title, corner_image=corner_image),
         *(render_paragraph(paragraph) for paragraph in story.paragraphs),
-        compose_square(preview),
+        render_story_preview(preview),
         render_cta(content=STORY_CTA),
     ]
 
@@ -1062,23 +1094,34 @@ def event_reel_durations(shots: list[Shot]) -> list[float]:
     ]
 
 
+REEL_PREVIEW_SECONDS = 3  # the wordless page preview is a brief visual beat
+
+
 def story_reel_durations(story: Story) -> list[float]:
-    """Seconds per story reel slide: a fixed hook, slides by reading speed, fixed CTA."""
+    """Seconds per story reel slide: hook, lead slides by reading speed, preview, CTA."""
     paragraphs = [
         "".join(run.text for run in paragraph) for paragraph in story.paragraphs
     ]
     return [
         float(REEL_HOOK_SECONDS),
         *(reading_seconds(paragraph) for paragraph in paragraphs),
+        float(REEL_PREVIEW_SECONDS),
         float(REEL_CTA_SECONDS),
     ]
 
 
-def render_story_reel(story: Story, intro: Image.Image) -> list[Image.Image]:
+def render_story_preview_frame(preview: Image.Image) -> Image.Image:
+    """The 9:16 reel preview: the whole shot filled full-bleed to the frame, faded bottom."""
+    return _fade_bottom(_fill(preview, (REEL_WIDTH, REEL_HEIGHT)))
+
+
+def render_story_reel(
+    story: Story, intro: Image.Image, preview: Image.Image
+) -> list[Image.Image]:
     """Render the story carousel as 9:16 reel frames; the CTA becomes a taller 2:3 card.
 
     ``intro`` is the square intro slide already rendered for the carousel, reused here
-    unchanged, as it is identical on the reel.
+    unchanged. ``preview`` is the 9:16 page-top screenshot, shown full-bleed.
     """
     slides = [
         intro,
@@ -1088,6 +1131,7 @@ def render_story_reel(story: Story, intro: Image.Image) -> list[Image.Image]:
             )
             for paragraph in story.paragraphs
         ),
+        render_story_preview_frame(preview),
         render_cta(
             height=REEL_CARD_HEIGHT,
             logo_width=REEL_CTA_LOGO_WIDTH,

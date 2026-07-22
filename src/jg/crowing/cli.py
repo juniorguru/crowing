@@ -92,7 +92,9 @@ async def _run_story(story_url: StoryUrl, url: str, output_dir: Path) -> Path:
     images = render_story(story, corner, preview)
     created = write_images(images, output_dir, story_url)
     write_carousel(images, created)
-    write_reel(render_story_reel(story, intro=images[0]), created, durations)
+    write_reel(
+        render_story_reel(story, intro=images[0], preview=preview), created, durations
+    )
     return created
 
 

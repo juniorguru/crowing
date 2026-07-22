@@ -18,6 +18,7 @@ from jg.crowing.rendering import (
     REEL_HEIGHT,
     REEL_HOOK_SECONDS,
     REEL_MAX_SECONDS,
+    REEL_PREVIEW_SECONDS,
     REEL_WIDTH,
     SIZE,
     STORY_CTA,
@@ -42,6 +43,7 @@ from jg.crowing.rendering import (
     render_reel,
     render_section,
     render_story,
+    render_story_preview_frame,
     render_story_reel,
     story_reel_durations,
     to_reel_frame,
@@ -56,7 +58,9 @@ def _story(paragraphs: list[list[Run]]) -> Story:
 
 
 CORNER = Image.new("RGBA", (CHICK_WIDTH, CHICK_WIDTH), (255, 0, 255, 255))
-PREVIEW = Image.new("RGB", (400, 400), "#00ff00")  # a stand-in page-top screenshot
+PREVIEW = Image.new(
+    "RGB", (800, 1422), "#00ff00"
+)  # a 9:16 stand-in page-top screenshot
 
 
 def hex_to_rgb(value: str) -> tuple[int, int, int]:
@@ -347,7 +351,7 @@ def test_render_section_counts_intro_paragraphs_and_cta():
 
 def test_render_story_counts_intro_paragraphs_preview_and_cta():
     images = render_story(_story([[Run("a")], [Run("b")], [Run("c")]]), CORNER, PREVIEW)
-    assert len(images) == 1 + 3 + 1 + 1  # intro + paragraphs + preview + cta
+    assert len(images) == 1 + 3 + 1 + 1  # intro + paragraphs + preview slide + cta
     assert images[0].getpixel((5, 5)) == hex_to_rgb(YELLOW)  # intro
     assert images[1].getpixel((5, 5)) == hex_to_rgb(WHITE)  # paragraph
     assert images[-1].getpixel((5, 5)) == hex_to_rgb(YELLOW)  # cta
@@ -360,13 +364,28 @@ def test_render_story_intro_shows_the_corner_image():
     assert any(pixels[x, y] == (255, 0, 255) for x, y in region)
 
 
-def test_render_story_preview_slide_precedes_the_cta():
+def test_render_story_preview_slide_is_full_bleed_before_the_cta():
     images = render_story(_story([[Run("a")]]), CORNER, PREVIEW)
     preview = images[-2]  # second to last, right before the cta
-    pixels = preview.load()
-    # the green stand-in screenshot sits centered on the square
-    assert pixels[SIZE // 2, SIZE // 2] == (0, 255, 0)
-    assert preview.getpixel((5, 5)) == hex_to_rgb(WHITE)  # white padding around it
+    assert preview.size == (SIZE, SIZE)
+    # the green stand-in screenshot fills the whole width, no padding, from the top
+    assert preview.getpixel((5, 5)) == (0, 255, 0)
+    assert preview.getpixel((SIZE // 2, SIZE // 3)) == (0, 255, 0)
+
+
+def test_render_story_preview_slide_fades_into_white_at_the_bottom():
+    preview = render_story(_story([[Run("a")]]), CORNER, PREVIEW)[-2]
+    assert preview.getpixel((SIZE // 2, SIZE - 1)) == hex_to_rgb(
+        WHITE
+    )  # bottom is white
+    assert preview.getpixel((SIZE // 2, SIZE // 3)) == (0, 255, 0)  # top still the shot
+
+
+def test_render_story_preview_frame_is_a_full_bleed_9_by_16():
+    frame = render_story_preview_frame(PREVIEW)
+    assert frame.size == (REEL_WIDTH, REEL_HEIGHT)
+    assert frame.getpixel((REEL_WIDTH // 2, REEL_HEIGHT // 3)) == (0, 255, 0)
+    assert frame.getpixel((REEL_WIDTH // 2, REEL_HEIGHT - 1)) == hex_to_rgb(WHITE)
 
 
 def test_render_story_cta_has_no_topics_cloud():
@@ -376,19 +395,20 @@ def test_render_story_cta_has_no_topics_cloud():
     assert not any(pixels[x, y] == gold for x in range(SIZE) for y in range(SIZE))
 
 
-def test_story_reel_durations_hook_readings_and_cta():
+def test_story_reel_durations_hook_readings_preview_and_cta():
     durations = story_reel_durations(_story([[Run("word " * 100)]]))
-    assert len(durations) == 1 + 1 + 1
+    assert len(durations) == 1 + 1 + 1 + 1  # hook + paragraph + preview + cta
     assert durations[0] == REEL_HOOK_SECONDS
     assert durations[1] == pytest.approx(100 / READING_WPM * 60)
+    assert durations[-2] == REEL_PREVIEW_SECONDS
     assert durations[-1] == REEL_CTA_SECONDS
 
 
 def test_render_story_reel_is_one_portrait_frame_per_slide():
     story = _story([[Run("a")], [Run("b")]])
     intro = Image.new("RGB", (SIZE, SIZE), hex_to_rgb(YELLOW))
-    frames = render_story_reel(story, intro=intro)
-    assert len(frames) == 1 + 2 + 1  # intro + paragraphs + cta
+    frames = render_story_reel(story, intro=intro, preview=PREVIEW)
+    assert len(frames) == 1 + 2 + 1 + 1  # intro + paragraphs + preview + cta
     assert all(frame.size == (REEL_WIDTH, REEL_HEIGHT) for frame in frames)
 
 
