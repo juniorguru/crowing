@@ -2,8 +2,11 @@ import pytest
 
 from jg.crowing.errors import InvalidInputError
 from jg.crowing.models import Run
-from jg.crowing.parsing import parse_event, parse_section
+from jg.crowing.parsing import parse_event, parse_section, parse_story
 from tests.conftest import load_fixture
+
+
+STORY_URL = "https://junior.guru/stories/simon-koreny/"
 
 
 def text_of(runs: list[Run]) -> str:
@@ -141,3 +144,61 @@ def test_parse_event_without_stahni_fotku_link_has_no_avatar():
         load_fixture("event-no-avatar.html"), "https://junior.guru/events/63/"
     )
     assert page.avatar_url is None
+
+
+@pytest.fixture
+def story_html():
+    return load_fixture("story.html")
+
+
+def test_parse_story_reads_the_title_from_the_h1(story_html):
+    story = parse_story(story_html, STORY_URL)
+    assert story.title == (
+        "Z barmana IT manažer. Teď mířím k roli firemního šamana, říká Šimon"
+    )
+
+
+def test_parse_story_groups_two_sentences_per_slide(story_html):
+    paragraphs = [text_of(p) for p in parse_story(story_html, STORY_URL).paragraphs]
+    assert paragraphs == [
+        "Pětatřicetiletý Šimon Kořený se živil v gastru až do pandemie, "
+        "která definitivně završila jeho vyčerpanost. "
+        "Dnes to vnímá jako vyhoření, které ještě ani nepřestalo doutnat.",
+        "Ani ne za třičtvrtě roku už podepisoval smlouvu v softwarové firmě. "
+        "Své poučení z chyb chce sdílet a propojovat světy daleko nad rámec kódu.",
+    ]
+
+
+def test_parse_story_keeps_inline_markup_within_a_slide(story_html):
+    first = parse_story(story_html, STORY_URL).paragraphs[0]
+    assert Run("vyhoření", bold=True) in first
+
+
+def test_parse_story_flattens_links_within_a_slide(story_html):
+    second = parse_story(story_html, STORY_URL).paragraphs[1]
+    assert "softwarové firmě" in text_of(second)
+    assert all(not run.code for run in second)  # a link is plain, not code
+
+
+def test_parse_story_resolves_the_article_image_url(story_html):
+    story = parse_story(story_html, STORY_URL)
+    assert story.image_url == (
+        "https://junior.guru/static/avatars-participants/simon-koreny.jpg"
+    )
+
+
+def test_parse_story_without_article_image_raises_invalid_input():
+    with pytest.raises(InvalidInputError):
+        parse_story(load_fixture("story-no-image.html"), STORY_URL)
+
+
+def test_parse_story_without_h1_raises_invalid_input():
+    with pytest.raises(InvalidInputError):
+        parse_story(
+            "<html><body><div class='lead'><p>A.</p></div></body></html>", STORY_URL
+        )
+
+
+def test_parse_story_without_lead_raises_invalid_input():
+    with pytest.raises(InvalidInputError):
+        parse_story("<html><body><h1>Title</h1></body></html>", STORY_URL)

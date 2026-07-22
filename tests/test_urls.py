@@ -1,7 +1,7 @@
 import pytest
 
 from jg.crowing.errors import InvalidInputError
-from jg.crowing.urls import EventUrl, HandbookUrl, parse_url
+from jg.crowing.urls import EventUrl, HandbookUrl, StoryUrl, parse_url
 
 
 def test_parse_url_returns_path_and_anchor():
@@ -35,6 +35,32 @@ def test_event_name_is_the_number():
     ],
 )
 def test_missing_event_number_raises_invalid_input(url):
+    with pytest.raises(InvalidInputError):
+        parse_url(url)
+
+
+def test_parse_url_returns_story_slug():
+    assert parse_url("https://junior.guru/stories/simon-koreny/") == StoryUrl(
+        path="/stories/simon-koreny/", slug="simon-koreny"
+    )
+
+
+def test_story_dir_name_is_stories():
+    assert parse_url("https://junior.guru/stories/simon-koreny/").dir_name == "stories"
+
+
+def test_story_name_is_the_slug():
+    assert parse_url("https://junior.guru/stories/simon-koreny/").name == "simon-koreny"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://junior.guru/stories/",
+        "https://junior.guru/stories//",
+    ],
+)
+def test_missing_story_slug_raises_invalid_input(url):
     with pytest.raises(InvalidInputError):
         parse_url(url)
 

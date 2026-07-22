@@ -69,6 +69,76 @@ def fake_event(monkeypatch):
     return shots
 
 
+@pytest.fixture
+def fake_story(monkeypatch):
+    """Fake a story: fetch the fixture HTML and a stand-in avatar, skip the reel encode."""
+    html = load_fixture("story.html")
+
+    async def _fetch(url, **kwargs):
+        return html
+
+    async def _fetch_bytes(url, **kwargs):
+        return _png_bytes((255, 0, 255))  # a magenta stand-in for the .article-image
+
+    def _fake_write_reel(frames, output_dir, durations, **kwargs):
+        (output_dir / "reel.mp4").write_bytes(b"")
+        return output_dir / "reel.mp4"
+
+    monkeypatch.setattr(cli, "fetch_html", _fetch)
+    monkeypatch.setattr(cli, "fetch_bytes", _fetch_bytes)
+    monkeypatch.setattr(cli, "render_story_reel", lambda *args, **kwargs: [])
+    monkeypatch.setattr(cli, "write_reel", _fake_write_reel)
+    return html
+
+
+def test_cli_creates_story_images_intro_paragraphs_and_cta(fake_story):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli.main, ["https://junior.guru/stories/simon-koreny/"])
+        assert result.exit_code == 0, result.output
+        out = Path("stories") / "simon-koreny"
+        files = sorted(p.name for p in out.glob("*.png"))
+        # 01 intro, one per lead slide (4 sentences -> 2 slides), then the cta
+        assert files == ["01.png", "02.png", "03.png", "04.png"]
+
+
+def test_cli_story_intro_is_the_yellow_rendered_slide(fake_story):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        runner.invoke(cli.main, ["https://junior.guru/stories/simon-koreny/"])
+        with Image.open(Path("stories") / "simon-koreny" / "01.png") as image:
+            assert image.getpixel((5, 5)) == (255, 250, 114)  # #fffa72 intro background
+
+
+def test_cli_story_puts_the_article_image_in_the_intro(fake_story):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        runner.invoke(cli.main, ["https://junior.guru/stories/simon-koreny/"])
+        with Image.open(Path("stories") / "simon-koreny" / "01.png") as intro:
+            pixels = intro.convert("RGB").load()
+            region = [(x, y) for x in range(540, 1080) for y in range(540, 1080)]
+            assert any(pixels[x, y] == (255, 0, 255) for x, y in region)
+
+
+def test_cli_creates_story_reel_and_carousel(fake_story):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli.main, ["https://junior.guru/stories/simon-koreny/"])
+        assert result.exit_code == 0, result.output
+        assert (Path("stories") / "simon-koreny" / "reel.mp4").exists()
+        assert (Path("stories") / "simon-koreny" / "carousel.pdf").exists()
+
+
+def test_cli_rejects_story_without_article_image(fake_story, monkeypatch):
+    async def _fetch(url, **kwargs):
+        return load_fixture("story-no-image.html")
+
+    monkeypatch.setattr(cli, "fetch_html", _fetch)
+    runner = CliRunner()
+    result = runner.invoke(cli.main, ["https://junior.guru/stories/simon-koreny/"])
+    assert result.exit_code != 0
+
+
 def test_cli_creates_nested_image_files(fake_fetch):
     runner = CliRunner()
     with runner.isolated_filesystem():

@@ -9,7 +9,7 @@ from PIL import Image
 
 from jg.crowing.errors import InvalidInputError
 from jg.crowing.fetching import fetch_bytes, fetch_html
-from jg.crowing.parsing import parse_event, parse_section
+from jg.crowing.parsing import parse_event, parse_section, parse_story
 from jg.crowing.rendering import (
     EVENT_CTA,
     REEL_WARN_SECONDS,
@@ -24,9 +24,12 @@ from jg.crowing.rendering import (
     render_intro,
     render_reel,
     render_section,
+    render_story,
+    render_story_reel,
+    story_reel_durations,
 )
 from jg.crowing.screenshots import capture_event
-from jg.crowing.urls import EventUrl, HandbookUrl, parse_url
+from jg.crowing.urls import EventUrl, HandbookUrl, StoryUrl, parse_url
 from jg.crowing.writing import write_carousel, write_images, write_reel
 
 
@@ -43,7 +46,7 @@ EVENT_INTRO_LABEL = "Online akce"  # prefix before the date on an event's intro 
     help="Where to create the image subdirectories (defaults to the current directory).",
 )
 def main(url: str, output_dir: Path) -> None:
-    """Create Instagram-ready images from a junior.guru handbook or event URL."""
+    """Create Instagram-ready images from a junior.guru handbook, event or story URL."""
     try:
         output = asyncio.run(_run(url, output_dir))
     except InvalidInputError as error:
@@ -55,6 +58,8 @@ async def _run(url: str, output_dir: Path) -> Path:
     parsed = parse_url(url)
     if isinstance(parsed, EventUrl):
         return await _run_event(parsed, url, output_dir)
+    if isinstance(parsed, StoryUrl):
+        return await _run_story(parsed, url, output_dir)
     return await _run_handbook(parsed, url, output_dir)
 
 
@@ -75,6 +80,18 @@ async def _run_handbook(handbook_url: HandbookUrl, url: str, output_dir: Path) -
     created = write_images(images, output_dir, handbook_url)
     write_carousel(images, created)
     write_reel(render_reel(section, intro=images[0]), created, durations)
+    return created
+
+
+async def _run_story(story_url: StoryUrl, url: str, output_dir: Path) -> Path:
+    story = parse_story(await fetch_html(url), url)
+    avatar = Image.open(BytesIO(await fetch_bytes(story.image_url)))
+    corner = circle_image(avatar)
+    durations = _finalize_reel(story_reel_durations(story))
+    images = render_story(story, corner)
+    created = write_images(images, output_dir, story_url)
+    write_carousel(images, created)
+    write_reel(render_story_reel(story, intro=images[0]), created, durations)
     return created
 
 

@@ -6,12 +6,90 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 from jg.crowing.errors import InvalidInputError
-from jg.crowing.models import EventPage, RichText, Run, Section
+from jg.crowing.models import EventPage, RichText, Run, Section, Story
 
 
 AVATAR_LINK_TEXT = "Stáhni fotku"  # download link junior.guru puts next to real photos
 # e.g. "30.6.2026, 18:00" → day, month, optional time (the year is dropped)
 DATE_RE = re.compile(r"(\d{1,2})\.\s*(\d{1,2})\.\s*\d{4}(?:[,\s]+(\d{1,2}:\d{2}))?")
+
+STORY_LEAD_SELECTOR = ".lead"  # the interview's introductory paragraph
+STORY_IMAGE_SELECTOR = "img.article-image"  # the photo shown, circled, in the intro
+STORY_SENTENCES_PER_SLIDE = 2  # each lead slide carries two sentences
+# a sentence ends at ., ! ? or … (with any trailing closing quote/bracket) and a space
+SENTENCE_END_RE = re.compile(r"[.!?…]+[\"”»)\]]*\s+")
+
+
+def parse_story(html: str, base_url: str) -> Story:
+    """Extract an interview's title, lead sentences and the ``.article-image`` URL.
+
+    The H1 holds the interview title, ``.lead`` the introductory paragraph (split into
+    one sentence per slide), and ``.article-image`` the photo shown in the intro corner;
+    ``base_url`` resolves the image's relative link. Missing pieces are invalid input.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    for link in soup.select("a.headerlink"):
+        link.decompose()
+    if not isinstance(h1 := soup.find("h1"), Tag):
+        raise InvalidInputError("Story page contains no H1")
+    if (lead := soup.select_one(STORY_LEAD_SELECTOR)) is None:
+        raise InvalidInputError("Story page contains no lead")
+    if not (sentences := _split_sentences(_runs(lead))):
+        raise InvalidInputError("Story page has an empty lead")
+    return Story(
+        title=_plain_text(h1),
+        paragraphs=_chunk_sentences(sentences, STORY_SENTENCES_PER_SLIDE),
+        image_url=_find_article_image(soup, base_url),
+    )
+
+
+def _chunk_sentences(sentences: list[RichText], per_slide: int) -> list[RichText]:
+    """Join every ``per_slide`` sentences into one slide's :class:`RichText`."""
+    return [
+        [
+            run
+            for index, sentence in enumerate(group)
+            for run in ([Run(" "), *sentence] if index else sentence)
+        ]
+        for start in range(0, len(sentences), per_slide)
+        if (group := sentences[start : start + per_slide])
+    ]
+
+
+def _find_article_image(soup: BeautifulSoup, base_url: str) -> str:
+    image = soup.select_one(STORY_IMAGE_SELECTOR)
+    if not isinstance(image, Tag) or not (src := image.get("src")):
+        raise InvalidInputError("Story page has no .article-image")
+    return urljoin(base_url, str(src))
+
+
+def _split_sentences(runs: RichText) -> list[RichText]:
+    """Split styled ``runs`` into one :class:`RichText` per sentence, keeping styling."""
+    flat: list[StyledChar] = [
+        (character, run.bold, run.italic, run.code)
+        for run in runs
+        for character in run.text
+    ]
+    text = "".join(character for character, *_ in flat)
+    sentences: list[RichText] = []
+    start = 0
+    for match in SENTENCE_END_RE.finditer(text):
+        sentences.append(_group(flat[start : match.end()]))
+        start = match.end()
+    if start < len(flat):
+        sentences.append(_group(flat[start:]))
+    return [stripped for sentence in sentences if (stripped := _strip_runs(sentence))]
+
+
+def _strip_runs(runs: RichText) -> RichText:
+    """Drop leading and trailing whitespace (a sentence's trailing gap) from ``runs``."""
+    if not runs:
+        return runs
+    head, *_ = runs
+    runs = [Run(head.text.lstrip(), head.bold, head.italic, head.code), *runs[1:]]
+    *_, tail = runs
+    runs = [*runs[:-1], Run(tail.text.rstrip(), tail.bold, tail.italic, tail.code)]
+    return [run for run in runs if run.text]
 
 
 def parse_event(html: str, base_url: str) -> EventPage:

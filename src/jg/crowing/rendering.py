@@ -11,7 +11,7 @@ from typing import NamedTuple
 from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 from jg.crowing.errors import InvalidInputError
-from jg.crowing.models import RichText, Run, Section, Shot
+from jg.crowing.models import RichText, Run, Section, Shot, Story
 
 
 SIZE = 1080
@@ -63,6 +63,12 @@ EVENT_CTA = CtaContent(
     message="Zajímá tě tahle online akce?\nPohlídej si ji!",
     button_text="junior.guru/events",
     icon="",  # Bootstrap Icons "play-circle-fill"
+)
+
+STORY_CTA = CtaContent(
+    message="Pravdivě o kariéře v IT.\nPřečti si celý rozhovor!",
+    button_text="junior.guru/stories",
+    icon="",  # Bootstrap Icons "file-text"
 )
 
 # Inter and Liberation Mono are bundled under the SIL Open Font License 1.1
@@ -573,7 +579,11 @@ def _draw_button(
     )
     text_left = content_left + icon_width + CTA_ICON_GAP
     draw.text(
-        (text_left, middle), content.button_text, font=text_font, fill=WHITE, anchor="lm"
+        (text_left, middle),
+        content.button_text,
+        font=text_font,
+        fill=WHITE,
+        anchor="lm",
     )
 
 
@@ -884,6 +894,22 @@ def render_section(section: Section) -> list[Image.Image]:
     ]
 
 
+STORY_INTRO_LABEL = "Rozhovor"  # small monospace prefix on a story's intro slide
+
+
+def render_story(story: Story, corner_image: Image.Image) -> list[Image.Image]:
+    """Render the full story carousel: intro, one slide per lead sentence, then the CTA.
+
+    ``corner_image`` is the story's circled ``.article-image`` photo, shown in the
+    intro's bottom-right corner in place of the chick.
+    """
+    return [
+        render_intro(STORY_INTRO_LABEL, story.title, corner_image=corner_image),
+        *(render_paragraph(paragraph) for paragraph in story.paragraphs),
+        render_cta(content=STORY_CTA),
+    ]
+
+
 # --- reel (9:16 slideshow) --------------------------------------------------
 
 REEL_WIDTH = 1080
@@ -1030,6 +1056,43 @@ def event_reel_durations(shots: list[Shot]) -> list[float]:
         *(shot.reading_seconds for shot in shots),
         float(REEL_CTA_SECONDS),
     ]
+
+
+def story_reel_durations(story: Story) -> list[float]:
+    """Seconds per story reel slide: a fixed hook, slides by reading speed, fixed CTA."""
+    paragraphs = [
+        "".join(run.text for run in paragraph) for paragraph in story.paragraphs
+    ]
+    return [
+        float(REEL_HOOK_SECONDS),
+        *(reading_seconds(paragraph) for paragraph in paragraphs),
+        float(REEL_CTA_SECONDS),
+    ]
+
+
+def render_story_reel(story: Story, intro: Image.Image) -> list[Image.Image]:
+    """Render the story carousel as 9:16 reel frames; the CTA becomes a taller 2:3 card.
+
+    ``intro`` is the square intro slide already rendered for the carousel, reused here
+    unchanged, as it is identical on the reel.
+    """
+    slides = [
+        intro,
+        *(
+            render_paragraph(
+                paragraph, height=REEL_CARD_HEIGHT, wordmark_size=REEL_WORDMARK_SIZE
+            )
+            for paragraph in story.paragraphs
+        ),
+        render_cta(
+            height=REEL_CARD_HEIGHT,
+            logo_width=REEL_CTA_LOGO_WIDTH,
+            message_size=REEL_CTA_MESSAGE_SIZE,
+            stretch=True,
+            content=STORY_CTA,
+        ),
+    ]
+    return [to_reel_frame(slide) for slide in slides]
 
 
 def render_event_reel(

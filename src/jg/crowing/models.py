@@ -32,6 +32,19 @@ class Section:
 
 
 @dataclass(frozen=True)
+class Story:
+    """A junior.guru story (interview) ready to be turned into a carousel of images.
+
+    ``paragraphs`` are the lead split into slides, two sentences per slide; ``image_url``
+    is the ``.article-image`` photo shown, circled, in the intro corner.
+    """
+
+    title: str
+    paragraphs: list[RichText]
+    image_url: str
+
+
+@dataclass(frozen=True)
 class EventPage:
     """The rendered-intro data parsed from an event page's HTML.
 

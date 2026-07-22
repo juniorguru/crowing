@@ -6,6 +6,49 @@ Creates the following marketing assets from a piece of junior.guru website:
 - LinkedIn carousel PDF
 - Reel video
 
+## Creating story content
+
+```
+$ crowing "https://junior.guru/stories/simon-koreny/"
+```
+
+- In current working directory (or whatever path user passed in CLI option) creates new subdirectory `stories` and inside another one, `simon-koreny`
+- Splits the `.lead` into sentences and pairs them up, keeping along each slide's reading time calculated given speed of reading 200wpm
+- Inside the subsubdirectory creates a set of assets
+
+### Preparation: Intro image
+
+- Contains "Rozhovor". Then new line, and the title of the interview. E.g. "Rozhovor" and then "Z barmana IT manažer. Teď mířím k roli firemního šamana, říká Šimon".
+- The intro image contains image from .article-image in the bottom right corner, rounded to circle
+
+### Preparation: Paragraph images
+
+- Instagram-ready square images called 02.png, 03.png, etc.
+- One image for every two sentences inside the .lead element
+- White background
+- The text is aligned to left
+- The size of the text is adjusted so that it's as large as possible, but it must fit the image, including some padding.
+- Each image has #1755d1 monospace text JUNIOR.GURU in right bottom corner, small and thin, but readable
+- Padding consistent with all other Instagram post images
+
+### Preparation: Call to action image
+
+- Text: "Pravdivě o kariéře v IT. Přečti si celý rozhovor!"
+- Button icon: [file-text](https://icons.getbootstrap.com/icons/file-text/)
+- Button text: "junior.guru/stories"
+
+### Instagram post
+
+- Instagram-ready 1080×1080px square images called 01.png, 02.png, etc., by default with white background
+- First image is the intro
+- A series of lead paragraph images follows, in their original order
+- The last image is the call to action image
+
+### Errors
+
+- If the link to /stories/ page doesn't include any of the expected elements, it's invalid input error
+- Missing .article-image image is invalid input error
+
 ## Creating event content
 
 ```
@@ -15,7 +58,6 @@ $ crowing "https://junior.guru/events/63/"
 - In current working directory (or whatever path user passed in CLI option) creates new subdirectory `events` and inside another one, `63`
 - Prepare a few screenshots (see below) and for each screenshot, also keep along info about a reading time calculated for the screenshot given speed of reading 200wpm
 - Inside the subsubdirectory creates a set of assets
-- Use free and open source browser for the screenshots, such as Firefox or Chromium
 
 ### Preparation: Media card screenshot
 
@@ -34,7 +76,7 @@ $ crowing "https://junior.guru/events/63/"
 - Sets the browser viewport to be 400px wide
 - Scrolls down to the .lead paragraph element
 - Changes the background to #f4f8fe
-- Removes underline from all links in the subsequent .note-explainer text
+- Removes underline from all links in the .lead text
 - Changes color of links to the color of their parent text
 - Takes a separate screenshot of each paragraph inside .lead, each must be completely visible on its screenshot
 
@@ -43,7 +85,7 @@ $ crowing "https://junior.guru/events/63/"
 - Opens the page in headless browser
 - Sets the browser viewport to be 300px wide
 - Scrolls down to the .note-explainer element
-- Removes underline from all links in the subsequent .note-explainer text
+- Removes underline from all links in the .note-explainer text
 - Changes color of links to the color of their parent text
 - Takes a separate screenshot of each .note-explainer-item, each item must be completely visible on its screenshot
 
@@ -63,7 +105,7 @@ $ crowing "https://junior.guru/events/63/"
 
 ### Instagram post
 
-- Instagram-ready 1080×1080px square images called 01.png, 02.png, etc., all with white background
+- Instagram-ready 1080×1080px square images called 01.png, 02.png, etc., by default with white background
 - All contain the prepared screenshots, each resized so that it fits the square while keeping its aspect ratio, and with some padding added so that it doesn't touch the square borders and the result is aestethically pleasing. This padding is the same accross all the squares
 - First image contains the media card
 - A series of images with #f4f8fe background follows, each containing a single lead paragraph item, with their original order
@@ -118,7 +160,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 
 ### Instagram post
 
-- Instagram-ready 1080×1080px square images called 01.png, 02.png, etc., all with white background
+- Instagram-ready 1080×1080px square images called 01.png, 02.png, etc., by default with white background
 - First image is the intro image
 - A series of paragraph images follows
 - The last image is the call to action image
@@ -134,6 +176,10 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - If target /handbook/ page doesn't contain H1, ToC, or the anchor, it's invalid input error
 
 ## Behavior common to any given URLs
+
+### Screenshots
+
+- Use free and open source browser for the screenshots, such as Firefox or Chromium
 
 ### Intro images
 

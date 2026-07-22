@@ -16,8 +16,18 @@ import tempfile
 from pathlib import Path
 
 
-URL = "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
-EXPECTED_DIR = Path("handbook-git") / "reseni-problemu-s-gitem"
+# Documented examples reachable without the Playwright browser (the event example
+# needs a browser, so it is left to the integration tests).
+EXAMPLES = [
+    (
+        "https://junior.guru/handbook/git/#reseni-problemu-s-gitem",
+        Path("handbook-git") / "reseni-problemu-s-gitem",
+    ),
+    (
+        "https://junior.guru/stories/simon-koreny/",
+        Path("stories") / "simon-koreny",
+    ),
+]
 
 
 def _crowing(*args: str) -> subprocess.CompletedProcess[str]:
@@ -31,24 +41,25 @@ def check_help() -> None:
     print("--help works")
 
 
-def check_example(output_dir: Path) -> None:
-    result = _crowing(URL, "--output-dir", str(output_dir))
+def check_example(url: str, expected_dir: Path, output_dir: Path) -> None:
+    result = _crowing(url, "--output-dir", str(output_dir))
     assert result.returncode == 0, result.stderr or result.stdout
 
-    created = output_dir / EXPECTED_DIR
+    created = output_dir / expected_dir
     images = sorted(p.name for p in created.glob("*.png"))
     assert len(images) >= 3, f"expected at least intro + paragraph + CTA, got {images}"
     assert images == [f"{i:02d}.png" for i in range(1, len(images) + 1)], images
     assert (created / "carousel.pdf").exists(), "carousel.pdf was not created"
     reel = created / "reel.mp4"
     assert reel.exists() and reel.stat().st_size > 0, "reel.mp4 was not created"
-    print(f"example produced {len(images)} images, carousel.pdf and reel.mp4")
+    print(f"{url} produced {len(images)} images, carousel.pdf and reel.mp4")
 
 
 def main() -> None:
     check_help()
-    with tempfile.TemporaryDirectory() as tmp:
-        check_example(Path(tmp))
+    for url, expected_dir in EXAMPLES:
+        with tempfile.TemporaryDirectory() as tmp:
+            check_example(url, expected_dir, Path(tmp))
     print("smoke OK")
 
 

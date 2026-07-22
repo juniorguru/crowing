@@ -4,7 +4,7 @@ import pytest
 from PIL import Image, ImageChops, ImageDraw
 
 from jg.crowing.errors import InvalidInputError
-from jg.crowing.models import Run, Section, Shot
+from jg.crowing.models import Run, Section, Shot, Story
 from jg.crowing.rendering import (
     BLUE,
     CHICK_WIDTH,
@@ -20,6 +20,7 @@ from jg.crowing.rendering import (
     REEL_MAX_SECONDS,
     REEL_WIDTH,
     SIZE,
+    STORY_CTA,
     WHITE,
     YELLOW,
     circle_image,
@@ -40,11 +41,21 @@ from jg.crowing.rendering import (
     render_paragraph,
     render_reel,
     render_section,
+    render_story,
+    render_story_reel,
+    story_reel_durations,
     to_reel_frame,
     to_words,
     transition_durations,
     wrap_text,
 )
+
+
+def _story(paragraphs: list[list[Run]]) -> Story:
+    return Story(title="Rozhovor s někým", paragraphs=paragraphs, image_url="x.jpg")
+
+
+CORNER = Image.new("RGBA", (CHICK_WIDTH, CHICK_WIDTH), (255, 0, 255, 255))
 
 
 def hex_to_rgb(value: str) -> tuple[int, int, int]:
@@ -331,6 +342,48 @@ def test_render_section_counts_intro_paragraphs_and_cta():
     assert images[0].getpixel((5, 5)) == hex_to_rgb(YELLOW)
     assert images[1].getpixel((5, 5)) == hex_to_rgb(WHITE)
     assert images[-1].getpixel((5, 5)) == hex_to_rgb(YELLOW)
+
+
+def test_render_story_counts_intro_paragraphs_and_cta():
+    images = render_story(_story([[Run("a")], [Run("b")], [Run("c")]]), CORNER)
+    assert len(images) == 1 + 3 + 1
+    assert images[0].getpixel((5, 5)) == hex_to_rgb(YELLOW)  # intro
+    assert images[1].getpixel((5, 5)) == hex_to_rgb(WHITE)  # paragraph
+    assert images[-1].getpixel((5, 5)) == hex_to_rgb(YELLOW)  # cta
+
+
+def test_render_story_intro_shows_the_corner_image():
+    intro = render_story(_story([[Run("a")]]), CORNER)[0]
+    pixels = intro.load()
+    region = [(x, y) for x in range(SIZE // 2, SIZE) for y in range(SIZE // 2, SIZE)]
+    assert any(pixels[x, y] == (255, 0, 255) for x, y in region)
+
+
+def test_render_story_cta_has_no_topics_cloud():
+    cta = render_story(_story([[Run("a")]]), CORNER)[-1]
+    pixels = cta.load()
+    gold = hex_to_rgb("#998c00")
+    assert not any(pixels[x, y] == gold for x in range(SIZE) for y in range(SIZE))
+
+
+def test_story_reel_durations_hook_readings_and_cta():
+    durations = story_reel_durations(_story([[Run("word " * 100)]]))
+    assert len(durations) == 1 + 1 + 1
+    assert durations[0] == REEL_HOOK_SECONDS
+    assert durations[1] == pytest.approx(100 / READING_WPM * 60)
+    assert durations[-1] == REEL_CTA_SECONDS
+
+
+def test_render_story_reel_is_one_portrait_frame_per_slide():
+    story = _story([[Run("a")], [Run("b")]])
+    intro = Image.new("RGB", (SIZE, SIZE), hex_to_rgb(YELLOW))
+    frames = render_story_reel(story, intro=intro)
+    assert len(frames) == 1 + 2 + 1  # intro + paragraphs + cta
+    assert all(frame.size == (REEL_WIDTH, REEL_HEIGHT) for frame in frames)
+
+
+def test_render_cta_button_reflects_the_story_content():
+    assert _button_bbox(render_cta()) != _button_bbox(render_cta(content=STORY_CTA))
 
 
 def test_reel_frame_is_9_by_16_portrait():
