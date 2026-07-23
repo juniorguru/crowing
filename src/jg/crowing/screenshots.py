@@ -161,3 +161,53 @@ async def capture_story_preview(
         finally:
             await browser.close()
     return Image.open(BytesIO(data)).convert("RGB")
+
+
+STORY_BLOCKQUOTE_VIEWPORT_WIDTH = 400
+STORY_BLOCKQUOTE_SELECTOR = ".document .blockquote-container"
+# Drop the blockquote's own margin so the screenshot hugs its content.
+STORY_BLOCKQUOTE_CSS = f"{STORY_BLOCKQUOTE_SELECTOR} {{ margin: 0 !important; }}\n"
+
+
+async def capture_story_blockquotes(
+    url: str, *, browser_name: str = "firefox"
+) -> list[Shot]:
+    """Screenshot each ``.blockquote-container`` of the story (empty list if none).
+
+    Each shot keeps its reading time so the reel can hold the quote on screen long
+    enough to read; the images are signed white squares in both carousel and reel.
+    """
+    from playwright.async_api import async_playwright
+
+    async with async_playwright() as playwright:
+        browser = await getattr(playwright, browser_name).launch()
+        try:
+            page = await browser.new_page(
+                viewport={
+                    "width": STORY_BLOCKQUOTE_VIEWPORT_WIDTH,
+                    "height": VIEWPORT_HEIGHT,
+                },
+                device_scale_factor=DEVICE_SCALE_FACTOR,
+            )
+            try:
+                await page.goto(url, wait_until="networkidle")
+                await page.add_style_tag(content=STORY_BLOCKQUOTE_CSS)
+                shots = []
+                for element in await page.locator(STORY_BLOCKQUOTE_SELECTOR).all():
+                    await element.scroll_into_view_if_needed()
+                    image = Image.open(BytesIO(await element.screenshot())).convert(
+                        "RGB"
+                    )
+                    shots.append(
+                        Shot(
+                            image=image,
+                            reading_seconds=reading_seconds(await element.inner_text()),
+                            background=WHITE,
+                            sign=True,
+                        )
+                    )
+                return shots
+            finally:
+                await page.close()
+        finally:
+            await browser.close()

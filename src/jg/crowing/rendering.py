@@ -857,6 +857,36 @@ def circle_image(image: Image.Image, width: int = CHICK_WIDTH) -> Image.Image:
     return square
 
 
+def compose_card(
+    screenshot: Image.Image,
+    canvas_width: int = SIZE,
+    canvas_height: int = SIZE,
+    padding: int = PADDING,
+    background: str = WHITE,
+    sign: bool = False,
+    wordmark_size: int = WORDMARK_SIZE,
+) -> Image.Image:
+    """Fit ``screenshot`` onto a ``background`` card, keeping its aspect ratio, centered.
+
+    The screenshot is scaled to fit inside the padded box and centered, so cards sharing
+    a padding never let it touch the borders. With ``sign`` the JUNIOR.GURU signature is
+    added to the bottom-right corner (of the whole card, whatever its shape).
+    """
+    canvas = Image.new("RGB", (canvas_width, canvas_height), background)
+    box_width = canvas_width - 2 * padding
+    box_height = canvas_height - 2 * padding
+    scale = min(box_width / screenshot.width, box_height / screenshot.height)
+    width = max(1, round(screenshot.width * scale))
+    height = max(1, round(screenshot.height * scale))
+    resized = screenshot.convert("RGB").resize(
+        (width, height), Image.Resampling.LANCZOS
+    )
+    canvas.paste(resized, ((canvas_width - width) // 2, (canvas_height - height) // 2))
+    if sign:
+        draw_wordmark(canvas, wordmark_size)
+    return canvas
+
+
 def compose_square(
     screenshot: Image.Image,
     size: int = SIZE,
@@ -864,25 +894,8 @@ def compose_square(
     background: str = WHITE,
     sign: bool = False,
 ) -> Image.Image:
-    """Fit ``screenshot`` onto a ``background`` square, keeping its aspect ratio.
-
-    The screenshot is scaled to fit inside a ``size - 2 * padding`` box and centered,
-    so every square shares the same padding and nothing touches the borders. With
-    ``sign`` the JUNIOR.GURU signature is added to the bottom-right corner (used for
-    the lead and note explainer shots, but not the featured media card).
-    """
-    canvas = Image.new("RGB", (size, size), background)
-    box = size - 2 * padding
-    scale = min(box / screenshot.width, box / screenshot.height)
-    width = max(1, round(screenshot.width * scale))
-    height = max(1, round(screenshot.height * scale))
-    resized = screenshot.convert("RGB").resize(
-        (width, height), Image.Resampling.LANCZOS
-    )
-    canvas.paste(resized, ((size - width) // 2, (size - height) // 2))
-    if sign:
-        draw_wordmark(canvas)
-    return canvas
+    """Fit ``screenshot`` onto a ``background`` square (a square :func:`compose_card`)."""
+    return compose_card(screenshot, size, size, padding, background, sign)
 
 
 def render_section(section: Section) -> list[Image.Image]:
@@ -929,18 +942,28 @@ def render_story_preview(preview: Image.Image) -> Image.Image:
     return _fade_bottom(_fill(square, (SIZE, SIZE)))
 
 
+def _blockquote_square(shot: Shot) -> Image.Image:
+    """Compose a blockquote screenshot onto its signed white square (the carousel slide)."""
+    return compose_square(shot.image, background=shot.background, sign=shot.sign)
+
+
 def render_story(
-    story: Story, corner_image: Image.Image, preview: Image.Image
+    story: Story,
+    corner_image: Image.Image,
+    preview: Image.Image,
+    blockquotes: list[Shot],
 ) -> list[Image.Image]:
-    """Render the full story carousel: intro, lead slides, the page preview, then the CTA.
+    """Render the full story carousel: intro, lead slides, blockquotes, preview, then CTA.
 
     ``corner_image`` is the story's circled ``.article-image`` photo, shown in the
-    intro's bottom-right corner in place of the chick. ``preview`` is the 9:16 page-top
-    screenshot; its top square is placed full-bleed (no padding, unlike the other slides).
+    intro's bottom-right corner in place of the chick. ``blockquotes`` are the quote
+    screenshots, each composed onto a signed white square. ``preview`` is the 9:16
+    page-top screenshot; its top square is placed full-bleed (no padding, unlike the rest).
     """
     return [
         render_intro(STORY_INTRO_LABEL, story.title, corner_image=corner_image),
         *(render_paragraph(paragraph) for paragraph in story.paragraphs),
+        *(_blockquote_square(blockquote) for blockquote in blockquotes),
         render_story_preview(preview),
         render_cta(content=STORY_CTA),
     ]
@@ -1097,14 +1120,15 @@ def event_reel_durations(shots: list[Shot]) -> list[float]:
 REEL_PREVIEW_SECONDS = 3  # the wordless page preview is a brief visual beat
 
 
-def story_reel_durations(story: Story) -> list[float]:
-    """Seconds per story reel slide: hook, lead slides by reading speed, preview, CTA."""
+def story_reel_durations(story: Story, blockquotes: list[Shot]) -> list[float]:
+    """Seconds per story reel slide: hook, lead + blockquotes by reading, preview, CTA."""
     paragraphs = [
         "".join(run.text for run in paragraph) for paragraph in story.paragraphs
     ]
     return [
         float(REEL_HOOK_SECONDS),
         *(reading_seconds(paragraph) for paragraph in paragraphs),
+        *(shot.reading_seconds for shot in blockquotes),
         float(REEL_PREVIEW_SECONDS),
         float(REEL_CTA_SECONDS),
     ]
@@ -1115,13 +1139,33 @@ def render_story_preview_frame(preview: Image.Image) -> Image.Image:
     return _fade_bottom(_fill(preview, (REEL_WIDTH, REEL_HEIGHT)))
 
 
+def _blockquote_reel_card(shot: Shot) -> Image.Image:
+    """A blockquote reel slide: the same square shot on a 2:3 card with a bigger signature.
+
+    Like the carousel slide, but the JUNIOR.GURU signature sits at the bottom-right of the
+    taller 2:3 reel canvas (and a touch larger), matching the handbook reel's white slides.
+    """
+    return compose_card(
+        shot.image,
+        SIZE,
+        REEL_CARD_HEIGHT,
+        background=shot.background,
+        sign=shot.sign,
+        wordmark_size=REEL_WORDMARK_SIZE,
+    )
+
+
 def render_story_reel(
-    story: Story, intro: Image.Image, preview: Image.Image
+    story: Story,
+    intro: Image.Image,
+    preview: Image.Image,
+    blockquotes: list[Shot],
 ) -> list[Image.Image]:
     """Render the story carousel as 9:16 reel frames; the CTA becomes a taller 2:3 card.
 
     ``intro`` is the square intro slide already rendered for the carousel, reused here
-    unchanged. ``preview`` is the 9:16 page-top screenshot, shown full-bleed.
+    unchanged. ``blockquotes`` are the quote squares, each centered on a 9:16 frame.
+    ``preview`` is the 9:16 page-top screenshot, shown full-bleed.
     """
     slides = [
         intro,
@@ -1131,16 +1175,22 @@ def render_story_reel(
             )
             for paragraph in story.paragraphs
         ),
-        render_story_preview_frame(preview),
-        render_cta(
-            height=REEL_CARD_HEIGHT,
-            logo_width=REEL_CTA_LOGO_WIDTH,
-            message_size=REEL_CTA_MESSAGE_SIZE,
-            stretch=True,
-            content=STORY_CTA,
-        ),
+        *(_blockquote_reel_card(blockquote) for blockquote in blockquotes),
     ]
-    return [to_reel_frame(slide) for slide in slides]
+    frames = [to_reel_frame(slide) for slide in slides]
+    frames.append(render_story_preview_frame(preview))
+    frames.append(
+        to_reel_frame(
+            render_cta(
+                height=REEL_CARD_HEIGHT,
+                logo_width=REEL_CTA_LOGO_WIDTH,
+                message_size=REEL_CTA_MESSAGE_SIZE,
+                stretch=True,
+                content=STORY_CTA,
+            )
+        )
+    )
+    return frames
 
 
 def render_event_reel(

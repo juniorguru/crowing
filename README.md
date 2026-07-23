@@ -40,6 +40,16 @@ $ crowing "https://junior.guru/stories/simon-koreny/"
 - Crops it the bottom to create one instagram-ready square image and one 9:16 for the purpose of the reel
 - Unlike other slides, this one has no padding, but it has a soft gradient near the bottom border, which goes from transparent (top) to white (bottom)
 
+### Preparation: Blockquote images
+
+- Opens the page in headless browser
+- Sets the browser viewport to be 400px wide
+- Finds all .blockquote-container elements inside .document (e.g. https://junior.guru/stories/petr-kasicka/ has them)
+- Removes their margin
+- Takes a screenshot of each of them separately
+- Each screenshot is resized so that it fits an Instagam square while keeping its aspect ratio, and with some padding added so that it doesn't touch the square borders and the result is aestethically pleasing. This padding is the same accross all the squares
+- Each resulting square slide has #1755d1 monospace text JUNIOR.GURU in right bottom corner, small and thin, but readable
+
 ### Preparation: Call to action image
 
 - Text: "Pravdivě o kariéře v IT. Přečti si celý rozhovor!"
@@ -51,11 +61,13 @@ $ crowing "https://junior.guru/stories/simon-koreny/"
 - Instagram-ready 1080×1080px square images called 01.png, 02.png, etc., by default with white background
 - First image is the intro
 - A series of lead paragraph images follows, in their original order
+- A series of images with white background follows, each containing a single blockquote, with their original order preserved
 - The preview image follows
 - The last image is the call to action image
 
 ## Reel
 
+- Blockquote slides are the same except that the JUNIOR.GURU text is larger and it's positioned right bottom related to an imaginary 2:3 canvas, not to an imaginary 1:1 square canvas
 - The preview image will stay for a fixed time of 3 seconds
 
 ### Errors

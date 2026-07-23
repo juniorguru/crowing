@@ -28,7 +28,11 @@ from jg.crowing.rendering import (
     render_story_reel,
     story_reel_durations,
 )
-from jg.crowing.screenshots import capture_event, capture_story_preview
+from jg.crowing.screenshots import (
+    capture_event,
+    capture_story_blockquotes,
+    capture_story_preview,
+)
 from jg.crowing.urls import EventUrl, HandbookUrl, StoryUrl, parse_url
 from jg.crowing.writing import write_carousel, write_images, write_reel
 
@@ -88,12 +92,17 @@ async def _run_story(story_url: StoryUrl, url: str, output_dir: Path) -> Path:
     avatar = Image.open(BytesIO(await fetch_bytes(story.image_url)))
     corner = circle_image(avatar)
     preview = await capture_story_preview(url)
-    durations = _finalize_reel(story_reel_durations(story))
-    images = render_story(story, corner, preview)
+    blockquotes = await capture_story_blockquotes(url)
+    durations = _finalize_reel(story_reel_durations(story, blockquotes))
+    images = render_story(story, corner, preview, blockquotes)
     created = write_images(images, output_dir, story_url)
     write_carousel(images, created)
     write_reel(
-        render_story_reel(story, intro=images[0], preview=preview), created, durations
+        render_story_reel(
+            story, intro=images[0], preview=preview, blockquotes=blockquotes
+        ),
+        created,
+        durations,
     )
     return created
 

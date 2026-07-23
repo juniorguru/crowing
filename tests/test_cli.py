@@ -83,6 +83,9 @@ def fake_story(monkeypatch):
     async def _capture_preview(url, **kwargs):
         return Image.new("RGB", (800, 1422), "#00ff00")  # a 9:16 green stand-in shot
 
+    async def _capture_blockquotes(url, **kwargs):
+        return []  # the simon-koreny fixture has no blockquotes
+
     def _fake_write_reel(frames, output_dir, durations, **kwargs):
         (output_dir / "reel.mp4").write_bytes(b"")
         return output_dir / "reel.mp4"
@@ -90,6 +93,7 @@ def fake_story(monkeypatch):
     monkeypatch.setattr(cli, "fetch_html", _fetch)
     monkeypatch.setattr(cli, "fetch_bytes", _fetch_bytes)
     monkeypatch.setattr(cli, "capture_story_preview", _capture_preview)
+    monkeypatch.setattr(cli, "capture_story_blockquotes", _capture_blockquotes)
     monkeypatch.setattr(cli, "render_story_reel", lambda *args, **kwargs: [])
     monkeypatch.setattr(cli, "write_reel", _fake_write_reel)
     return html
@@ -104,6 +108,21 @@ def test_cli_creates_story_images_intro_paragraphs_preview_and_cta(fake_story):
         files = sorted(p.name for p in out.glob("*.png"))
         # 01 intro, one per lead slide (4 sentences -> 2 slides), preview, then the cta
         assert files == ["01.png", "02.png", "03.png", "04.png", "05.png"]
+
+
+def test_cli_inserts_blockquote_slides_before_the_preview(fake_story, monkeypatch):
+    async def _capture_blockquotes(url, **kwargs):
+        return [Shot(Image.new("RGB", (500, 300), "#ff8800"), reading_seconds=2.0)]
+
+    monkeypatch.setattr(cli, "capture_story_blockquotes", _capture_blockquotes)
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli.main, ["https://junior.guru/stories/simon-koreny/"])
+        assert result.exit_code == 0, result.output
+        out = Path("stories") / "simon-koreny"
+        files = sorted(p.name for p in out.glob("*.png"))
+        # intro + 2 lead + 1 blockquote + preview + cta
+        assert files == ["01.png", "02.png", "03.png", "04.png", "05.png", "06.png"]
 
 
 def test_cli_story_intro_is_the_yellow_rendered_slide(fake_story):

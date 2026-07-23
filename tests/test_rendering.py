@@ -25,6 +25,7 @@ from jg.crowing.rendering import (
     WHITE,
     YELLOW,
     circle_image,
+    compose_card,
     compose_square,
     event_reel_durations,
     fit_intro,
@@ -61,6 +62,9 @@ CORNER = Image.new("RGBA", (CHICK_WIDTH, CHICK_WIDTH), (255, 0, 255, 255))
 PREVIEW = Image.new(
     "RGB", (800, 1422), "#00ff00"
 )  # a 9:16 stand-in page-top screenshot
+BLOCKQUOTE = Shot(  # a stand-in quote screenshot with its reading time
+    Image.new("RGB", (500, 300), "#ff8800"), reading_seconds=2.0, sign=True
+)
 
 
 def hex_to_rgb(value: str) -> tuple[int, int, int]:
@@ -350,22 +354,39 @@ def test_render_section_counts_intro_paragraphs_and_cta():
 
 
 def test_render_story_counts_intro_paragraphs_preview_and_cta():
-    images = render_story(_story([[Run("a")], [Run("b")], [Run("c")]]), CORNER, PREVIEW)
+    images = render_story(
+        _story([[Run("a")], [Run("b")], [Run("c")]]), CORNER, PREVIEW, []
+    )
     assert len(images) == 1 + 3 + 1 + 1  # intro + paragraphs + preview slide + cta
     assert images[0].getpixel((5, 5)) == hex_to_rgb(YELLOW)  # intro
     assert images[1].getpixel((5, 5)) == hex_to_rgb(WHITE)  # paragraph
     assert images[-1].getpixel((5, 5)) == hex_to_rgb(YELLOW)  # cta
 
 
+def test_render_story_inserts_signed_blockquote_squares_after_the_lead():
+    images = render_story(
+        _story([[Run("a")]]), CORNER, PREVIEW, [BLOCKQUOTE, BLOCKQUOTE]
+    )
+    # intro + 1 lead + 2 blockquotes + preview + cta
+    assert len(images) == 1 + 1 + 2 + 1 + 1
+    blockquote = images[2]  # right after the intro and the single lead slide
+    assert blockquote.size == (SIZE, SIZE)
+    assert blockquote.getpixel((5, 5)) == hex_to_rgb(
+        WHITE
+    )  # white padding, not preview
+    region = [(x, y) for x in range(SIZE // 2, SIZE) for y in range(SIZE // 2, SIZE)]
+    assert any(blockquote.getpixel((x, y)) == hex_to_rgb(BLUE) for x, y in region)
+
+
 def test_render_story_intro_shows_the_corner_image():
-    intro = render_story(_story([[Run("a")]]), CORNER, PREVIEW)[0]
+    intro = render_story(_story([[Run("a")]]), CORNER, PREVIEW, [])[0]
     pixels = intro.load()
     region = [(x, y) for x in range(SIZE // 2, SIZE) for y in range(SIZE // 2, SIZE)]
     assert any(pixels[x, y] == (255, 0, 255) for x, y in region)
 
 
 def test_render_story_preview_slide_is_full_bleed_before_the_cta():
-    images = render_story(_story([[Run("a")]]), CORNER, PREVIEW)
+    images = render_story(_story([[Run("a")]]), CORNER, PREVIEW, [])
     preview = images[-2]  # second to last, right before the cta
     assert preview.size == (SIZE, SIZE)
     # the green stand-in screenshot fills the whole width, no padding, from the top
@@ -374,7 +395,7 @@ def test_render_story_preview_slide_is_full_bleed_before_the_cta():
 
 
 def test_render_story_preview_slide_fades_into_white_at_the_bottom():
-    preview = render_story(_story([[Run("a")]]), CORNER, PREVIEW)[-2]
+    preview = render_story(_story([[Run("a")]]), CORNER, PREVIEW, [])[-2]
     assert preview.getpixel((SIZE // 2, SIZE - 1)) == hex_to_rgb(
         WHITE
     )  # bottom is white
@@ -389,26 +410,50 @@ def test_render_story_preview_frame_is_a_full_bleed_9_by_16():
 
 
 def test_render_story_cta_has_no_topics_cloud():
-    cta = render_story(_story([[Run("a")]]), CORNER, PREVIEW)[-1]
+    cta = render_story(_story([[Run("a")]]), CORNER, PREVIEW, [])[-1]
     pixels = cta.load()
     gold = hex_to_rgb("#998c00")
     assert not any(pixels[x, y] == gold for x in range(SIZE) for y in range(SIZE))
 
 
-def test_story_reel_durations_hook_readings_preview_and_cta():
-    durations = story_reel_durations(_story([[Run("word " * 100)]]))
-    assert len(durations) == 1 + 1 + 1 + 1  # hook + paragraph + preview + cta
+def test_story_reel_durations_hook_readings_blockquotes_preview_and_cta():
+    durations = story_reel_durations(_story([[Run("word " * 100)]]), [BLOCKQUOTE])
+    # hook + paragraph + blockquote + preview + cta
+    assert len(durations) == 1 + 1 + 1 + 1 + 1
     assert durations[0] == REEL_HOOK_SECONDS
     assert durations[1] == pytest.approx(100 / READING_WPM * 60)
+    assert durations[2] == BLOCKQUOTE.reading_seconds  # blockquote held to be read
     assert durations[-2] == REEL_PREVIEW_SECONDS
     assert durations[-1] == REEL_CTA_SECONDS
+
+
+def test_compose_card_signs_the_bottom_right_of_a_two_by_three_canvas():
+    # a white shot on a white 2:3 card: the only blue is the JUNIOR.GURU signature
+    card = compose_card(
+        Image.new("RGB", (400, 300), WHITE),
+        SIZE,
+        REEL_CARD_HEIGHT,
+        sign=True,
+        wordmark_size=44,
+    )
+    assert card.size == (SIZE, REEL_CARD_HEIGHT)
+    region = [
+        (x, y)
+        for x in range(SIZE // 2, SIZE)
+        for y in range(REEL_CARD_HEIGHT - 2 * PADDING, REEL_CARD_HEIGHT)
+    ]
+    assert any(card.getpixel((x, y)) == hex_to_rgb(BLUE) for x, y in region)
 
 
 def test_render_story_reel_is_one_portrait_frame_per_slide():
     story = _story([[Run("a")], [Run("b")]])
     intro = Image.new("RGB", (SIZE, SIZE), hex_to_rgb(YELLOW))
-    frames = render_story_reel(story, intro=intro, preview=PREVIEW)
-    assert len(frames) == 1 + 2 + 1 + 1  # intro + paragraphs + preview + cta
+    frames = render_story_reel(
+        story, intro=intro, preview=PREVIEW, blockquotes=[BLOCKQUOTE]
+    )
+    assert (
+        len(frames) == 1 + 2 + 1 + 1 + 1
+    )  # intro + paragraphs + blockquote + preview + cta
     assert all(frame.size == (REEL_WIDTH, REEL_HEIGHT) for frame in frames)
 
 
