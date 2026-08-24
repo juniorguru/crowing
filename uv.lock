@@ -74,7 +74,7 @@ dev = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.13" },
     { name = "click", specifier = ">=8.1" },
-    { name = "httpx2", specifier = ">=0.28" },
+    { name = "httpx2", specifier = ">=2.12.0" },
     { name = "imageio", specifier = ">=2.37.3" },
     { name = "imageio-ffmpeg", specifier = ">=0.6.0" },
     { name = "pillow", specifier = ">=11.0" },
