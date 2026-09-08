@@ -67,10 +67,12 @@ class Shot:
     it isn't used by the MVP carousel yet, but travels with the image for later use.
     ``background`` is the colour its square should sit on (yellow for the lead).
     ``sign`` marks shots that get the JUNIOR.GURU signature (the lead and note
-    explainer items, but not the featured media card).
+    explainer items, but not the featured media card). ``reel_card`` marks shots that
+    are laid out on the taller 2:3 reel canvas instead of the square (the media card).
     """
 
     image: "Image"
     reading_seconds: float = 0.0
     background: str = "#ffffff"
     sign: bool = False
+    reel_card: bool = False

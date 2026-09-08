@@ -139,6 +139,10 @@ $ crowing "https://junior.guru/events/63/"
 - Each lead and note explainer image has #1755d1 monospace text JUNIOR.GURU in right bottom corner, small and thin, but readable
 - The last image is the call to action image
 
+### Reel
+
+- Media card is the same except that the it's positioned to fit an imaginary 2:3 canvas, not to an imaginary 1:1 square canvas
+
 ### Errors
 
 - If the link to /events/ page doesn't include any of the expected elements, it's invalid input error
@@ -263,6 +267,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
   - The logo and the text above the button are significantly larger
 - H.264 video in an MP4 container, sRGB, 30 fps
 - The first image (the intro hook) is on screen for 3s, each subsequent slide for as many seconds as needed for reading the text on screen with speed of reading 200wpm, and the call to action for a fixed 10s
+- No slide is on screen for longer than 10s, however much text it has
 - If the whole video would be 90s or longer, the tool first tries to save the situation by showing call to action only for 5s, and if that doesn't help, it raises an invalid input error, because 90s is too long for a reel
 - If it is 60s or longer (but under 90s), it still renders but prints a warning that the video is getting long
 - A royalty-free background music track [`Kicking It - Dyalla.m4a`](./src/jg/crowing/assets/Kicking%20It%20-%20Dyalla.m4a) plays under the slides, encoded as AAC and cut to the length of the video; the source track has a long intro, so it is trimmed to leave 3s of intro before the beat drops (aligning the drop with the end of the 3s hook) with a 1s fade-in at the start

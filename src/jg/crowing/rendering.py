@@ -1086,16 +1086,20 @@ def reel_total_seconds(
 
 
 REEL_CTA_RESCUE_SECONDS = 5  # if the reel is too long, first try a shorter CTA
+REEL_SLIDE_MAX_SECONDS = 10  # however long its text, no slide stays on screen longer
 
 
 def fit_reel_durations(
     durations: list[float], transition_seconds: float = REEL_TRANSITION_SECONDS
 ) -> list[float]:
-    """Keep the reel under the limit: shorten the CTA to the rescue length if too long.
+    """Cap every slide at :data:`REEL_SLIDE_MAX_SECONDS`, then keep the reel under the limit.
 
-    Raises :class:`InvalidInputError` if even the shortened CTA can't bring the reel
-    under :data:`REEL_MAX_SECONDS`.
+    A slide with a lot of text would otherwise linger; past ten seconds the viewer has
+    either read it or scrolled on. If the reel is still too long, the CTA is shortened to
+    the rescue length, and :class:`InvalidInputError` is raised if even that can't bring
+    the reel under :data:`REEL_MAX_SECONDS`.
     """
+    durations = [min(duration, float(REEL_SLIDE_MAX_SECONDS)) for duration in durations]
     if reel_total_seconds(durations, transition_seconds) < REEL_MAX_SECONDS:
         return durations
     rescued = [*durations[:-1], min(durations[-1], float(REEL_CTA_RESCUE_SECONDS))]
@@ -1139,12 +1143,16 @@ def render_story_preview_frame(preview: Image.Image) -> Image.Image:
     return _fade_bottom(_fill(preview, (REEL_WIDTH, REEL_HEIGHT)))
 
 
-def _blockquote_reel_card(shot: Shot) -> Image.Image:
-    """A blockquote reel slide: the same square shot on a 2:3 card with a bigger signature.
+def _shot_reel_slide(shot: Shot) -> Image.Image:
+    """Lay a screenshot out for the reel: on the taller 2:3 card, or on the square.
 
-    Like the carousel slide, but the JUNIOR.GURU signature sits at the bottom-right of the
-    taller 2:3 reel canvas (and a touch larger), matching the handbook reel's white slides.
+    ``reel_card`` shots (the event's media card, a story's blockquotes) are composed onto
+    the 2:3 canvas, so they fill the portrait frame instead of being shrunk to a square;
+    their JUNIOR.GURU signature then sits at the bottom-right of that 2:3 card, larger.
+    The rest keep the same square as the carousel, padded onto the frame.
     """
+    if not shot.reel_card:
+        return compose_square(shot.image, background=shot.background, sign=shot.sign)
     return compose_card(
         shot.image,
         SIZE,
@@ -1175,7 +1183,7 @@ def render_story_reel(
             )
             for paragraph in story.paragraphs
         ),
-        *(_blockquote_reel_card(blockquote) for blockquote in blockquotes),
+        *(_shot_reel_slide(blockquote) for blockquote in blockquotes),
     ]
     frames = [to_reel_frame(slide) for slide in slides]
     frames.append(render_story_preview_frame(preview))
@@ -1194,13 +1202,15 @@ def render_story_reel(
 
 
 def render_event_reel(
-    square_slides: list[Image.Image], content: CtaContent
+    intro: Image.Image, shots: list[Shot], content: CtaContent
 ) -> list[Image.Image]:
     """Render the event carousel as 9:16 reel frames; the CTA becomes a taller 2:3 card.
 
-    ``square_slides`` are the intro and screenshot squares (everything but the CTA);
-    each is centered on the 9:16 canvas padded with its own background, while the call
-    to action is re-rendered as a stretched 2:3 card so its text fills the taller frame.
+    ``intro`` is the square intro slide already rendered for the carousel. The ``shots``
+    are laid out by :func:`_shot_reel_slide` — the media card fills the taller 2:3 canvas,
+    the lead and note items keep their carousel square — and each is then centered on the
+    9:16 canvas padded with its own background, while the call to action is re-rendered as
+    a stretched 2:3 card so its text fills the taller frame.
     """
     cta = render_cta(
         height=REEL_CARD_HEIGHT,
@@ -1209,4 +1219,5 @@ def render_event_reel(
         stretch=True,
         content=content,
     )
-    return [to_reel_frame(slide) for slide in (*square_slides, cta)]
+    slides = [intro, *(_shot_reel_slide(shot) for shot in shots), cta]
+    return [to_reel_frame(slide) for slide in slides]

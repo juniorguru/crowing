@@ -42,13 +42,14 @@ PREPARATION_CSS = (
 )
 
 # The screenshots, in the order the carousel expects them, each as
-# ``(viewport width, selector, background, sign)``: the featured media card, one per
-# lead paragraph (on yellow), then one per note explainer item. ``sign`` marks the
-# shots that get the JUNIOR.GURU signature (the lead and note items, not the card).
+# ``(viewport width, selector, background, sign, reel card)``: the featured media card,
+# one per lead paragraph (on yellow), then one per note explainer item. ``sign`` marks the
+# shots that get the JUNIOR.GURU signature (the lead and note items, not the card), and
+# ``reel card`` the ones laid out on the taller 2:3 reel canvas (only the media card).
 _SHOOTS = [
-    (MEDIA_CARD_VIEWPORT_WIDTH, MEDIA_CARD_SELECTOR, WHITE, False),
-    (LEAD_VIEWPORT_WIDTH, LEAD_PARAGRAPH_SELECTOR, LEAD_BACKGROUND, True),
-    (NOTE_EXPLAINER_VIEWPORT_WIDTH, NOTE_EXPLAINER_ITEM_SELECTOR, WHITE, True),
+    (MEDIA_CARD_VIEWPORT_WIDTH, MEDIA_CARD_SELECTOR, WHITE, False, True),
+    (LEAD_VIEWPORT_WIDTH, LEAD_PARAGRAPH_SELECTOR, LEAD_BACKGROUND, True, False),
+    (NOTE_EXPLAINER_VIEWPORT_WIDTH, NOTE_EXPLAINER_ITEM_SELECTOR, WHITE, True, False),
 ]
 
 
@@ -63,9 +64,9 @@ async def capture_event(url: str, *, browser_name: str = "firefox") -> list[Shot
     async with async_playwright() as playwright:
         browser = await getattr(playwright, browser_name).launch()
         try:
-            for width, selector, background, sign in _SHOOTS:
+            for width, selector, background, sign, reel_card in _SHOOTS:
                 shots += await _shoot_all(
-                    browser, url, width, selector, background, sign
+                    browser, url, width, selector, background, sign, reel_card
                 )
         finally:
             await browser.close()
@@ -78,7 +79,13 @@ async def capture_event(url: str, *, browser_name: str = "firefox") -> list[Shot
 
 
 async def _shoot_all(
-    browser, url: str, width: int, selector: str, background: str, sign: bool = False
+    browser,
+    url: str,
+    width: int,
+    selector: str,
+    background: str,
+    sign: bool = False,
+    reel_card: bool = False,
 ) -> list[Shot]:
     """Load ``url`` at viewport ``width`` and screenshot every ``selector`` element."""
     page = await browser.new_page(
@@ -98,6 +105,7 @@ async def _shoot_all(
                     reading_seconds=reading_seconds(await element.inner_text()),
                     background=background,
                     sign=sign,
+                    reel_card=reel_card,
                 )
             )
         return shots
@@ -204,6 +212,7 @@ async def capture_story_blockquotes(
                             reading_seconds=reading_seconds(await element.inner_text()),
                             background=WHITE,
                             sign=True,
+                            reel_card=True,
                         )
                     )
                 return shots

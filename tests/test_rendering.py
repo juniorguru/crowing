@@ -17,8 +17,8 @@ from jg.crowing.rendering import (
     REEL_CTA_SECONDS,
     REEL_HEIGHT,
     REEL_HOOK_SECONDS,
-    REEL_MAX_SECONDS,
     REEL_PREVIEW_SECONDS,
+    REEL_SLIDE_MAX_SECONDS,
     REEL_WIDTH,
     SIZE,
     STORY_CTA,
@@ -657,15 +657,35 @@ def test_event_reel_durations_hook_readings_and_cta():
     ]
 
 
+def _event_shots(count: int, size=(400, 300), **kwargs) -> list[Shot]:
+    return [Shot(Image.new("RGB", size, BLUE), **kwargs) for _ in range(count)]
+
+
 def test_render_event_reel_has_one_frame_per_slide_plus_cta():
-    squares = [Image.new("RGB", (SIZE, SIZE), YELLOW) for _ in range(3)]
-    frames = render_event_reel(squares, EVENT_CTA)
-    assert len(frames) == len(squares) + 1  # the CTA is appended
+    intro = Image.new("RGB", (SIZE, SIZE), hex_to_rgb(YELLOW))
+    shots = _event_shots(3)
+    frames = render_event_reel(intro, shots, EVENT_CTA)
+    assert len(frames) == 1 + len(shots) + 1  # intro, the shots, then the CTA
 
 
 def test_render_event_reel_frames_are_9_by_16():
-    frames = render_event_reel([Image.new("RGB", (SIZE, SIZE), WHITE)], EVENT_CTA)
+    intro = Image.new("RGB", (SIZE, SIZE), hex_to_rgb(WHITE))
+    frames = render_event_reel(intro, _event_shots(1), EVENT_CTA)
     assert all(frame.size == (REEL_WIDTH, REEL_HEIGHT) for frame in frames)
+
+
+def test_render_event_reel_lays_the_media_card_on_the_taller_two_by_three_canvas():
+    # the media card is portrait, so the 2:3 canvas lets it grow taller than the square
+    intro = Image.new("RGB", (SIZE, SIZE), hex_to_rgb(WHITE))
+    blue = hex_to_rgb(BLUE)
+
+    def shot_height(**kwargs) -> int:
+        shots = _event_shots(1, size=(300, 600), **kwargs)
+        frame = render_event_reel(intro, shots, EVENT_CTA)[1]
+        ys = [y for y in range(REEL_HEIGHT) if frame.getpixel((SIZE // 2, y)) == blue]
+        return max(ys) - min(ys)
+
+    assert shot_height(reel_card=True) > shot_height(reel_card=False)
 
 
 def test_fit_reel_durations_leaves_a_short_reel_untouched():
@@ -673,11 +693,21 @@ def test_fit_reel_durations_leaves_a_short_reel_untouched():
     assert fit_reel_durations(durations) == durations
 
 
+def test_fit_reel_durations_caps_any_slide_at_the_slide_maximum():
+    # a wordy slide would read as 40s; it is held for ten seconds and no longer
+    assert fit_reel_durations([3.0, 40.0, 10.0]) == [
+        3.0,
+        float(REEL_SLIDE_MAX_SECONDS),
+        10.0,
+    ]
+
+
 def test_fit_reel_durations_shortens_the_cta_to_rescue_a_long_reel():
-    durations = [3.0, 80.0, 10.0]  # 92s with the full CTA, 87s with the 5s rescue
+    # hook + 8 capped slides + CTA is 90.75s, but only 85.75s with the 5s rescue
+    durations = [3.0, *([10.0] * 8), 10.0]
     assert fit_reel_durations(durations)[-1] == float(REEL_CTA_RESCUE_SECONDS)
 
 
 def test_fit_reel_durations_raises_when_even_a_short_cta_cannot_help():
     with pytest.raises(InvalidInputError):
-        fit_reel_durations([3.0, float(REEL_MAX_SECONDS), 10.0])
+        fit_reel_durations([3.0, *([10.0] * 9), 10.0])

@@ -125,5 +125,5 @@ async def _run_event(event_url: EventUrl, url: str, output_dir: Path) -> Path:
     created = write_images(images, output_dir, event_url)
     write_carousel(images, created)
     durations = _finalize_reel(event_reel_durations(shots))
-    write_reel(render_event_reel([intro, *squares], EVENT_CTA), created, durations)
+    write_reel(render_event_reel(intro, shots, EVENT_CTA), created, durations)
     return created
