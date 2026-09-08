@@ -16,6 +16,12 @@ $ crowing "https://junior.guru/stories/simon-koreny/"
 - Splits the `.lead` into sentences and pairs them up, keeping along each slide's reading time calculated given speed of reading 200wpm
 - Inside the subsubdirectory creates a set of assets
 
+### Preparation: Text
+
+- Title is set to "Příběh: TITLE WITHOUT ŘÍKÁ", for example "Příběh: Tři roky učení. Pak přišla práce, na kterou jsem nesplňovala jediný požadavek" when the actual title is "Tři roky učení. Pak přišla práce, na kterou jsem nesplňovala jediný požadavek, říká Pavla Beránková"
+- Text is set to the text of the lead paragraph in full.
+- Tags are set to an empty list.
+
 ### Preparation: Intro image
 
 - Contains "Rozhovor". Then new line, and the title of the interview. E.g. "Rozhovor" and then "Z barmana IT manažer. Teď mířím k roli firemního šamana, říká Šimon".
@@ -83,7 +89,24 @@ $ crowing "https://junior.guru/events/63/"
 
 - In current working directory (or whatever path user passed in CLI option) creates new subdirectory `events` and inside another one, `63`
 - Prepare a few screenshots (see below) and for each screenshot, also keep along info about a reading time calculated for the screenshot given speed of reading 200wpm
+- 
 - Inside the subsubdirectory creates a set of assets
+
+### Preparation: Text
+
+- Title is set to "Klubová akce: TITLE WITHOUT NAME", for example "Klubová akce: Focus v době AI" when the actual title of the page is "Adina Fox: Focus v době AI
+#". The name of the speaker is inside `.media-card-heading`
+- Text is set to:
+  - The `.lead` text,
+  - followed by a blank line,
+  - then the whole `.note-explainer` as plain text (with links neutralized and no bold, obviously), each item starting on a new line with emoji equivalent to its icon,
+  - then blank line,
+  - then the speaker name from `.media-card-heading`,
+  - then new line,
+  - then bio name from `.media-card-meta`,
+  - then blank line,
+  - then bio text from `.media-card-richtext` (with links neutralized to plain text and without the `.icon-links` list)
+- Tags are set to an empty list.
 
 ### Preparation: Media card screenshot
 
@@ -162,6 +185,12 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Skips cards, embedded videos, figures, etc.
 - In current working directory (or whatever path user passed in CLI option) creates new subdirectory `handbook-git` and inside another one, `reseni-problemu-s-gitem`
 - Inside the subsubdirectory creates a set of assets
+
+### Preparation: Text
+
+- Title is set to "Příručka: HEADING", for example "Příručka: Řešení problémů s Gitem"
+- Text is set to the full text extracted from the section. It keeps paragraphs separated by a single blank line.
+- Tags are set to an empty list.
 
 ### Preparation: Intro image
 
@@ -278,6 +307,13 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - Each transition is clamped so it never outlasts either slide it joins
 - The two transitions around a short interior slide are scaled down together, so the slide still gets some standalone time instead of vanishing into a three-way blend
 - Overlapping transitions shorten the total video length accordingly
+
+### Post text
+
+- A social media post text is generated as TOML and saved alongside the produced media files
+- The file name is `post.toml`
+- It contains `title` with title of the post, `text` with main text of the post, and `tags` with a list of tags
+- Each tag is a string. It does not start with `#`
 
 ### Errors
 
