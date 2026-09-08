@@ -18,10 +18,10 @@ async def fetch_html(
 
 
 async def fetch_bytes(
-    url: str, *, transport: httpx.AsyncBaseTransport | None = None
+    url: str, *, transport: httpx2.AsyncBaseTransport | None = None
 ) -> bytes:
     """Download ``url`` and return its raw bytes (e.g. an avatar image)."""
-    async with httpx.AsyncClient(
+    async with httpx2.AsyncClient(
         follow_redirects=True,
         transport=transport,
         timeout=30,
