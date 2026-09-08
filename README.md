@@ -20,7 +20,6 @@ $ crowing "https://junior.guru/stories/simon-koreny/"
 
 - Title is set to "Příběh: TITLE WITHOUT ŘÍKÁ", for example "Příběh: Tři roky učení. Pak přišla práce, na kterou jsem nesplňovala jediný požadavek" when the actual title is "Tři roky učení. Pak přišla práce, na kterou jsem nesplňovala jediný požadavek, říká Pavla Beránková"
 - Text is set to the text of the lead paragraph in full.
-- Tags are set to an empty list.
 
 ### Preparation: Intro image
 
@@ -106,7 +105,6 @@ $ crowing "https://junior.guru/events/63/"
   - then bio name from `.media-card-meta`,
   - then blank line,
   - then bio text from `.media-card-richtext` (with links neutralized to plain text and without the `.icon-links` list)
-- Tags are set to an empty list.
 
 ### Preparation: Media card screenshot
 
@@ -190,7 +188,6 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 
 - Title is set to "Příručka: HEADING", for example "Příručka: Řešení problémů s Gitem"
 - Text is set to the full text extracted from the section. It keeps paragraphs separated by a single blank line.
-- Tags are set to an empty list.
 
 ### Preparation: Intro image
 
@@ -314,6 +311,7 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - The file name is `post.toml`
 - It contains `title` with title of the post, `text` with main text of the post, and `tags` with a list of tags
 - Each tag is a string. It does not start with `#`
+- Post tags are generated: crowing calls an LLM to determine which tags to use. It uses the title and text of the social media post as input for the LLM. The aim of the tags is to please the social media algorithms, such as the one on Instagram or TikTok.
 
 ### Errors
 
@@ -371,3 +369,10 @@ The project aims to be as consistent as possible with other [@juniorguru](https:
 - walrus operators are great and pyupgrade is one of the tools we regularly run to keep the code nice and modern
 - The `FUNDING.yml` and `dependabot.yml` files inside `.github` are as consistent as possible with other @juniorguru projects
 - There is a GitHub Actions workflow which runs all the tests and checks, including an end-to-end smoke test (`tests/smoke.py`, also runnable via `make smoke`) which installs the tool with runtime dependencies only and runs the documented example, checking `--help`, that it doesn't crash, and that it produces the expected assets as documented
+
+## Calling LLMs
+
+- When crowing uses an LLM to generate content, it does it by calling a dedicated LLM tool inside a subprocess to avoid fiddling with auth and to allow using LLM subscriptions as they're cheaper than tokens
+- For now, it is able to recognize only the `claude` utility if it's present in path and callable
+- If certain feature requires LLM to work, but it is not to be find, the program ends with an error, reporting that it could not find a provider, and lists supported providers and the commands or paths it was unsuccessfully checking
+- Requesting something from the LLM is done using a carefully crafted prompt, which nails the balance between token spend and usefulness.
