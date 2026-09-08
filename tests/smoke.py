@@ -19,8 +19,8 @@ import tomllib
 from pathlib import Path
 
 
-# Documented examples reachable without the Playwright browser (the event example
-# needs a browser, so it is left to the integration tests).
+# Documented handbook and story examples. Story screenshots require Playwright's
+# Firefox browser to be installed before running this test.
 EXAMPLES = [
     (
         "https://junior.guru/handbook/git/#reseni-problemu-s-gitem",

@@ -30,7 +30,10 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install the tool
-        run: uv tool install .
+        run: uv tool install --with-executables-from playwright .
+
+      - name: Install the browser and system dependencies
+        run: playwright install --with-deps firefox
 
       - name: Run the end-to-end smoke test
         run: python tests/smoke.py
