@@ -1,3 +1,4 @@
+import tomllib
 from io import BytesIO
 from pathlib import Path
 
@@ -105,6 +106,9 @@ def test_cli_creates_story_images_intro_paragraphs_preview_and_cta(fake_story):
         result = runner.invoke(cli.main, ["https://junior.guru/stories/simon-koreny/"])
         assert result.exit_code == 0, result.output
         out = Path("stories") / "simon-koreny"
+        post = tomllib.loads((out / "post.toml").read_text())
+        assert post["title"].startswith("Příběh: ")
+        assert post["tags"] == []
         files = sorted(p.name for p in out.glob("*.png"))
         # 01 intro, one per lead slide (4 sentences -> 2 slides), preview, then the cta
         assert files == ["01.png", "02.png", "03.png", "04.png", "05.png"]
@@ -171,6 +175,9 @@ def test_cli_creates_nested_image_files(fake_fetch):
         )
         assert result.exit_code == 0, result.output
         out = Path("handbook-git") / "reseni-problemu-s-gitem"
+        post = tomllib.loads((out / "post.toml").read_text())
+        assert post["title"] == "Příručka: Řešení problémů s Gitem"
+        assert "\n\n" in post["text"]
         files = sorted(p.name for p in out.glob("*.png"))
         assert files == ["01.png", "02.png", "03.png", "04.png"]
 
@@ -233,6 +240,9 @@ def test_cli_creates_event_images_with_an_intro_first(fake_event):
     with runner.isolated_filesystem():
         result = runner.invoke(cli.main, ["https://junior.guru/events/63/"])
         assert result.exit_code == 0, result.output
+        post = tomllib.loads((Path("events") / "63" / "post.toml").read_text())
+        assert post["title"].startswith("Klubová akce: ")
+        assert post["tags"] == []
         files = sorted(p.name for p in (Path("events") / "63").glob("*.png"))
         # 01 intro, one image per screenshot (3), then the call to action last
         assert files == ["01.png", "02.png", "03.png", "04.png", "05.png"]

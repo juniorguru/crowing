@@ -22,6 +22,15 @@ RichText = list[Run]
 
 
 @dataclass(frozen=True)
+class Post:
+    """Plain text accompanying the generated media."""
+
+    title: str
+    text: str
+    tags: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class Section:
     """A handbook section ready to be turned into a carousel of images."""
 

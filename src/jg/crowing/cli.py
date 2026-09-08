@@ -10,6 +10,7 @@ from PIL import Image
 from jg.crowing.errors import InvalidInputError
 from jg.crowing.fetching import fetch_bytes, fetch_html
 from jg.crowing.parsing import parse_event, parse_section, parse_story
+from jg.crowing.posts import prepare_post
 from jg.crowing.rendering import (
     EVENT_CTA,
     REEL_WARN_SECONDS,
@@ -34,7 +35,7 @@ from jg.crowing.screenshots import (
     capture_story_preview,
 )
 from jg.crowing.urls import EventUrl, HandbookUrl, StoryUrl, parse_url
-from jg.crowing.writing import write_carousel, write_images, write_reel
+from jg.crowing.writing import write_carousel, write_images, write_post, write_reel
 
 
 EVENT_INTRO_LABEL = "Online akce"  # prefix before the date on an event's intro slide
@@ -82,13 +83,15 @@ async def _run_handbook(handbook_url: HandbookUrl, url: str, output_dir: Path) -
     durations = _finalize_reel(reel_durations(section))
     images = render_section(section)
     created = write_images(images, output_dir, handbook_url)
+    write_post(prepare_post(html, section), created)
     write_carousel(images, created)
     write_reel(render_reel(section, intro=images[0]), created, durations)
     return created
 
 
 async def _run_story(story_url: StoryUrl, url: str, output_dir: Path) -> Path:
-    story = parse_story(await fetch_html(url), url)
+    html = await fetch_html(url)
+    story = parse_story(html, url)
     avatar = Image.open(BytesIO(await fetch_bytes(story.image_url)))
     corner = circle_image(avatar)
     preview = await capture_story_preview(url)
@@ -96,6 +99,7 @@ async def _run_story(story_url: StoryUrl, url: str, output_dir: Path) -> Path:
     durations = _finalize_reel(story_reel_durations(story, blockquotes))
     images = render_story(story, corner, preview, blockquotes)
     created = write_images(images, output_dir, story_url)
+    write_post(prepare_post(html, story), created)
     write_carousel(images, created)
     write_reel(
         render_story_reel(
@@ -108,7 +112,8 @@ async def _run_story(story_url: StoryUrl, url: str, output_dir: Path) -> Path:
 
 
 async def _run_event(event_url: EventUrl, url: str, output_dir: Path) -> Path:
-    page = parse_event(await fetch_html(url), url)
+    html = await fetch_html(url)
+    page = parse_event(html, url)
     corner = None
     if page.avatar_url:
         avatar = Image.open(BytesIO(await fetch_bytes(page.avatar_url)))
@@ -123,6 +128,7 @@ async def _run_event(event_url: EventUrl, url: str, output_dir: Path) -> Path:
     ]
     images = [intro, *squares, render_cta(content=EVENT_CTA)]
     created = write_images(images, output_dir, event_url)
+    write_post(prepare_post(html, page), created)
     write_carousel(images, created)
     durations = _finalize_reel(event_reel_durations(shots))
     write_reel(render_event_reel(intro, shots, EVENT_CTA), created, durations)

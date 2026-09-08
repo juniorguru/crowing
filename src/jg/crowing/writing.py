@@ -1,5 +1,6 @@
 """Imperative shell: persist rendered images to disk."""
 
+import json
 import subprocess
 import tempfile
 from pathlib import Path
@@ -8,6 +9,7 @@ import imageio_ffmpeg
 from PIL import Image
 
 from jg.crowing.errors import InvalidInputError
+from jg.crowing.models import Post
 from jg.crowing.rendering import (
     REEL_FPS,
     REEL_MAX_SECONDS,
@@ -23,6 +25,21 @@ from jg.crowing.urls import Url
 # 35s/1047-frame fixture, "veryfast" cut encoding from ~13.5s to ~9s while the
 # output was, if anything, slightly smaller (394KB vs 468KB at "medium").
 REEL_PRESET = "veryfast"
+
+
+def write_post(post: Post, output_dir: Path) -> Path:
+    """Save Unicode post text as TOML basic strings with escaped line breaks."""
+
+    def quoted(value: str) -> str:
+        return json.dumps(value, ensure_ascii=False).replace("\x7f", "\\u007f")
+
+    path = output_dir / "post.toml"
+    tags = ", ".join(quoted(tag) for tag in post.tags)
+    path.write_text(
+        f"title = {quoted(post.title)}\ntext = {quoted(post.text)}\ntags = [{tags}]\n",
+        encoding="utf-8",
+    )
+    return path
 
 
 def write_images(images: list[Image.Image], base_dir: Path, url: Url) -> Path:
