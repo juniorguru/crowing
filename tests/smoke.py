@@ -7,12 +7,15 @@ without the dev dependencies also guards against a runtime dependency
 accidentally living in the dev group. Deeper checks of the images and the PDF
 themselves are left to the unit and integration tests.
 
+Uses a deterministic Claude executable fixture so CI needs no LLM subscription.
 Run it with ``make smoke``.
 """
 
+import os
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 
@@ -31,7 +34,10 @@ EXAMPLES = [
 
 
 def _crowing(*args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["crowing", *args], capture_output=True, text=True)
+    env = dict(os.environ)
+    providers = Path(__file__).parent / "fixtures"
+    env["PATH"] = f"{providers}{os.pathsep}{env.get('PATH', '')}"
+    return subprocess.run(["crowing", *args], capture_output=True, text=True, env=env)
 
 
 def check_help() -> None:
@@ -52,7 +58,10 @@ def check_example(url: str, expected_dir: Path, output_dir: Path) -> None:
     assert (created / "carousel.pdf").exists(), "carousel.pdf was not created"
     reel = created / "reel.mp4"
     assert reel.exists() and reel.stat().st_size > 0, "reel.mp4 was not created"
-    print(f"{url} produced {len(images)} images, carousel.pdf and reel.mp4")
+    post = tomllib.loads((created / "post.toml").read_text(encoding="utf-8"))
+    assert post["title"] and post["text"]
+    assert post["tags"] == ["programovani", "juniorguru"]
+    print(f"{url} produced {len(images)} images, carousel.pdf, reel.mp4 and post.toml")
 
 
 def main() -> None:

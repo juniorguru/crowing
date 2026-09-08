@@ -311,7 +311,8 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 - The file name is `post.toml`
 - It contains `title` with title of the post, `text` with main text of the post, and `tags` with a list of tags
 - Each tag is a string. It does not start with `#`
-- Post tags are generated: crowing calls an LLM to determine which tags to use. It uses the title and text of the social media post as input for the LLM. The aim of the tags is to please the social media algorithms, such as the one on Instagram or TikTok.
+- Post tags are generated: crowing calls an LLM to determine which tags to use. It uses the title and text of the social media post as input for the LLM. The aim of the tags is to please the social media algorithms, such as the one on Instagram or TikTok
+- As the posts are in Czech, the tags should be in Czech as well, although English technology jargon is allowed and welcomed
 
 ### Errors
 

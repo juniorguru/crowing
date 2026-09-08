@@ -1,3 +1,4 @@
+import os
 import tomllib
 from io import BytesIO
 from pathlib import Path
@@ -10,6 +11,12 @@ from jg.crowing import cli
 from jg.crowing.errors import InvalidInputError
 from jg.crowing.models import Shot
 from tests.conftest import load_fixture
+
+
+@pytest.fixture(autouse=True)
+def fake_provider(monkeypatch):
+    directory = Path(__file__).parent / "fixtures"
+    monkeypatch.setenv("PATH", f"{directory}{os.pathsep}{os.environ.get('PATH', '')}")
 
 
 @pytest.fixture
@@ -108,7 +115,7 @@ def test_cli_creates_story_images_intro_paragraphs_preview_and_cta(fake_story):
         out = Path("stories") / "simon-koreny"
         post = tomllib.loads((out / "post.toml").read_text())
         assert post["title"].startswith("Příběh: ")
-        assert post["tags"] == []
+        assert post["tags"] == ["programovani", "juniorguru"]
         files = sorted(p.name for p in out.glob("*.png"))
         # 01 intro, one per lead slide (4 sentences -> 2 slides), preview, then the cta
         assert files == ["01.png", "02.png", "03.png", "04.png", "05.png"]
@@ -242,7 +249,7 @@ def test_cli_creates_event_images_with_an_intro_first(fake_event):
         assert result.exit_code == 0, result.output
         post = tomllib.loads((Path("events") / "63" / "post.toml").read_text())
         assert post["title"].startswith("Klubová akce: ")
-        assert post["tags"] == []
+        assert post["tags"] == ["programovani", "juniorguru"]
         files = sorted(p.name for p in (Path("events") / "63").glob("*.png"))
         # 01 intro, one image per screenshot (3), then the call to action last
         assert files == ["01.png", "02.png", "03.png", "04.png", "05.png"]
@@ -315,3 +322,15 @@ def test_cli_event_puts_the_speaker_avatar_in_the_intro(fake_event, monkeypatch)
                 (x, y) for x in range(540, 1080) for y in range(540, 1080)
             ]  # bottom-right, where the avatar sits
             assert any(pixels[x, y] == (255, 0, 255) for x, y in region)
+
+
+def test_cli_reports_missing_provider_before_rendering(fake_fetch, monkeypatch):
+    monkeypatch.setenv("PATH", "")
+    result = CliRunner().invoke(
+        cli.main, ["https://junior.guru/handbook/git/#reseni-problemu-s-gitem"]
+    )
+    assert result.exit_code == 1
+    assert "Could not find a callable LLM provider" in result.output
+    assert "claude" in result.output
+    assert "PATH" in result.output
+    assert "Invalid value for URL" not in result.output

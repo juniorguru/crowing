@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""Deterministic provider for CLI integration and smoke tests; no authentication."""
+
+import json
+import sys
+
+
+if sys.argv[1:] == ["--version"]:
+    print("Claude test provider")
+else:
+    assert "--print" in sys.argv
+    prompt = sys.stdin.read()
+    assert '"title":' in prompt and '"text":' in prompt
+    print(
+        json.dumps(
+            {
+                "subtype": "success",
+                "is_error": False,
+                "result": "",
+                "structured_output": {"tags": ["programovani", "juniorguru"]},
+            }
+        )
+    )
