@@ -20,7 +20,7 @@ from pathlib import Path
 
 
 # Documented handbook and story examples. Story screenshots require Playwright's
-# Firefox browser to be installed before running this test.
+# Chromium browser to be installed before running this test.
 EXAMPLES = [
     (
         "https://junior.guru/handbook/git/#reseni-problemu-s-gitem",

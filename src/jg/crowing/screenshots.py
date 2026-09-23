@@ -1,6 +1,6 @@
 """Imperative shell: screenshot event page elements with a headless browser.
 
-Uses Playwright driving a free and open source browser (Firefox by default) to open
+Uses Playwright driving a free and open source browser (Chromium by default) to open
 the live event page, flatten its links and hide the media card's call to action, then
 grab one screenshot per element. Playwright is imported lazily so the rest of the tool
 (and its tests) runs without the browser binaries installed.
@@ -53,7 +53,7 @@ _SHOOTS = [
 ]
 
 
-async def capture_event(url: str, *, browser_name: str = "firefox") -> list[Shot]:
+async def capture_event(url: str, *, browser_name: str = "chromium") -> list[Shot]:
     """Screenshot the event page's media card, lead and note explainer items.
 
     Raises :class:`InvalidInputError` when the page has none of these elements.
@@ -134,7 +134,7 @@ STORY_PREVIEW_HIDE_CSS = (
 
 
 async def capture_story_preview(
-    url: str, *, browser_name: str = "firefox"
+    url: str, *, browser_name: str = "chromium"
 ) -> Image.Image:
     """Screenshot the story page top as a full-width 9:16 crop (bottom cut off).
 
@@ -178,7 +178,7 @@ STORY_BLOCKQUOTE_CSS = f"{STORY_BLOCKQUOTE_SELECTOR} {{ margin: 0 !important; }}
 
 
 async def capture_story_blockquotes(
-    url: str, *, browser_name: str = "firefox"
+    url: str, *, browser_name: str = "chromium"
 ) -> list[Shot]:
     """Screenshot each ``.blockquote-container`` of the story (empty list if none).
 

@@ -235,7 +235,14 @@ $ crowing "https://junior.guru/handbook/git/#reseni-problemu-s-gitem"
 
 ### Screenshots
 
-- Use free and open source browser for the screenshots, such as Firefox or Chromium
+- Use a free and open source browser for the screenshots
+
+### Known issues
+
+- Crowing temporarily uses Chromium instead of Firefox for screenshots because
+  [Playwright Firefox cannot launch on macOS 27](https://github.com/microsoft/playwright/issues/42082).
+  This workaround should be reevaluated after macOS or Playwright updates; restoring
+  Firefox as the default is tracked in [#7](https://github.com/juniorguru/crowing/issues/7).
 
 ### Intro images
 

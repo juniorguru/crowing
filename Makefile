@@ -4,7 +4,7 @@
 # drives to screenshot event pages.
 install:
 	uv sync
-	uv run playwright install firefox
+	uv run playwright install chromium
 
 # Run the whole test suite (this also runs ruff lint, ruff format check
 # and the cyclomatic complexity check via pytest-ruff).
