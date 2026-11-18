@@ -95,6 +95,7 @@ async def _shoot_all(
     try:
         await page.goto(url, wait_until="networkidle")
         await page.add_style_tag(content=PREPARATION_CSS + _background_css(background))
+        await _fit_viewport_to_page(page)
         shots = []
         for element in await page.locator(selector).all():
             await element.scroll_into_view_if_needed()
@@ -111,6 +112,18 @@ async def _shoot_all(
         return shots
     finally:
         await page.close()
+
+
+async def _fit_viewport_to_page(page) -> None:
+    """Grow the viewport to the full page height so every element is already in view.
+
+    Chromium paints a stray line in the text colour under an element that straddled the
+    bottom edge of the initial viewport and was scrolled into view for its screenshot.
+    """
+    height = await page.evaluate("document.documentElement.scrollHeight")
+    viewport = page.viewport_size
+    if height > viewport["height"]:
+        await page.set_viewport_size({"width": viewport["width"], "height": height})
 
 
 def _background_css(background: str) -> str:
@@ -200,6 +213,7 @@ async def capture_story_blockquotes(
             try:
                 await page.goto(url, wait_until="networkidle")
                 await page.add_style_tag(content=STORY_BLOCKQUOTE_CSS)
+                await _fit_viewport_to_page(page)
                 shots = []
                 for element in await page.locator(STORY_BLOCKQUOTE_SELECTOR).all():
                     await element.scroll_into_view_if_needed()
