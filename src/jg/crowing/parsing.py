@@ -170,21 +170,29 @@ def _iter_paragraphs(heading: Tag):
 def _paragraphs_from(element: Tag):
     """Yield the paragraphs of a block: a ``<p>``, each ``<li>``, or a note's contents."""
     if element.name == "p" and "admonition-title" not in (element.get("class") or []):
-        runs = _runs(element)
-        if runs:
-            following = element.find_next_sibling()
-            if following is not None and following.name in ("ul", "ol"):
-                runs = _colon_to_ellipsis(runs)  # a colon reads badly before a list
-            yield runs
+        yield from _paragraph(element)
     elif element.name in ("ul", "ol"):
-        for item in element.find_all("li", recursive=False):
-            runs = _runs(item)
-            if runs:
-                yield runs
+        yield from _list_items(element)
     elif element.name == "div" and _is_note(element):
         for child in element.children:
             if isinstance(child, Tag):
                 yield from _paragraphs_from(child)
+
+
+def _paragraph(element: Tag):
+    runs = _runs(element)
+    if not runs:
+        return
+    following = element.find_next_sibling()
+    if following is not None and following.name in ("ul", "ol"):
+        runs = _colon_to_ellipsis(runs)  # a colon reads badly before a list
+    yield runs
+
+
+def _list_items(element: Tag):
+    for item in element.find_all("li", recursive=False):
+        if runs := _runs(item):
+            yield runs
 
 
 def _is_note(element: Tag) -> bool:
