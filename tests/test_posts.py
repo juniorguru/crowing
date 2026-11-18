@@ -2,6 +2,7 @@ import tomllib
 
 import pytest
 
+from jg.crowing.errors import InvalidInputError
 from jg.crowing.models import Post
 from jg.crowing.parsing import parse_event, parse_section, parse_story
 from jg.crowing.posts import prepare_post
@@ -52,9 +53,21 @@ def test_event_post_plain_text_and_icon_order():
     post = prepare_post(html, parse_event(html, "https://junior.guru/"))
     assert post == Post(
         "Klubová akce: Focus v době AI",
-        "Lead bold and link.\n\nℹ️ Info\n⭐ Star\n🐷 Free\n▶️ Watch\n❤️ Beginners"
+        "Lead bold and link.\n\n📅 Info\n🙋‍♀️ Star\n🤗 Free\n👉 Watch\n😵‍💫 Beginners"
         "\n\nAdina Fox\nHead of Product Design\n\nBio link.\n\nMore bio.",
     )
+
+
+@pytest.mark.parametrize(
+    "icon", ['<i class="bi bi-rocket-fill"></i>', "", '<i class="bi"></i>']
+)
+def test_event_post_fails_on_unknown_icon(icon):
+    html = f"""
+    <h1>Adina Fox: Focus v době AI</h1>
+    <ul class="note-explainer"><li>{icon} Rocket</li></ul>
+    """
+    with pytest.raises(InvalidInputError, match="ICON_EMOJI"):
+        prepare_post(html, parse_event(html, "https://junior.guru/"))
 
 
 @pytest.mark.parametrize(

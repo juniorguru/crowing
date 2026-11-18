@@ -4,16 +4,19 @@ import re
 
 from bs4 import BeautifulSoup
 
+from jg.crowing.errors import InvalidInputError
 from jg.crowing.models import EventPage, Post, Section, Story
 from jg.crowing.parsing import _plain_text
 
 
+# Emojis say what the point means, not what its icon looks like (no 🐷 for "free").
+# An icon missing here fails loudly, so a new one gets a deliberately chosen emoji.
 ICON_EMOJI = {
-    "bi-info-circle-fill": "ℹ️",
-    "bi-star-fill": "⭐",
-    "bi-piggy-bank-fill": "🐷",
-    "bi-play-circle-fill": "▶️",
-    "bi-heart-fill": "❤️",
+    "bi-info-circle-fill": "📅",  # when, where and how long
+    "bi-star-fill": "🙋‍♀️",  # members watch live and ask questions
+    "bi-piggy-bank-fill": "🤗",  # free to join, 14-day trial
+    "bi-play-circle-fill": "👉",  # where to go on Discord
+    "bi-heart-fill": "😵‍💫",  # for beginners, no unexplained jargon
 }
 
 
@@ -60,6 +63,15 @@ def _event_post(soup: BeautifulSoup, page: EventPage) -> Post:
 
 
 def _explainer_item(item) -> str:
-    classes = {name for icon in item.select(".bi") for name in icon.get("class", [])}
-    emoji = next((emoji for name, emoji in ICON_EMOJI.items() if name in classes), "•")
-    return f"{emoji} {_plain_text(item)}"
+    icons = [
+        name
+        for icon in item.select(".bi")
+        for name in icon.get("class", [])
+        if name.startswith("bi-")
+    ]
+    if len(icons) != 1 or icons[0] not in ICON_EMOJI:
+        raise InvalidInputError(
+            f"No emoji for note explainer icon {icons or '(none)'}, "
+            f"add it to ICON_EMOJI in jg.crowing.posts: {_plain_text(item)!r}"
+        )
+    return f"{ICON_EMOJI[icons[0]]} {_plain_text(item)}"
